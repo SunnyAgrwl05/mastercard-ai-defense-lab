@@ -1,6 +1,6 @@
 # 🛡️ Mastercard AI Defense Lab
 
-### Red Team × Blue Team — AI-Powered Payment Fraud Defense
+### Red Team × Blue Team · AI-Powered Payment Fraud Defense
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Online-success?style=for-the-badge)](https://mastercard-ai-defense-lab.onrender.com/)
 [![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/SunnyAgrwl05/mastercard-ai-defense-lab)
@@ -20,7 +20,7 @@
 
 ## Live Defense Command Center
 
-The deployed frontend is an interactive, browser-based payment-security dashboard — the **Defense Command Center**. It lets anyone, without setup, explore the full closed-loop system:
+The deployed frontend is an interactive, browser-based payment-security dashboard — the **Defense Command Center**. It lets anyone, without any local setup, explore the full closed-loop system:
 
 - Real-time transaction risk scoring
 - Adversarial attack simulation against the live model
@@ -32,72 +32,44 @@ The deployed frontend is an interactive, browser-based payment-security dashboar
 
 ---
 
-## Aim / Mission
+## 🎯 Aim of the Project
 
-Most fraud-detection projects train a classifier once and stop. **Mastercard AI Defense Lab** treats fraud defense as an ongoing contest between an attacker and a defender.
-
-The mission is to build a **closed-loop Red Team × Blue Team system** where:
-
-1. A **Blue Team** model learns to detect fraudulent payments.
-2. A **Red Team** engine actively searches for transaction patterns the Blue Team fails to catch.
-3. Every attack the Blue Team misses is fed back into training.
-4. The Blue Team is retrained and re-tested against fresh, unseen attacks.
-
-The goal is not a single accuracy number — it is a system that keeps testing and improving itself.
-
----
-
-## Problem
-
-Conventional, static fraud-detection models are trained once on historical data and then deployed unchanged. This works reasonably well against known fraud patterns, but it struggles against attackers who:
-
-- Deliberately shape transactions to stay just under known detection thresholds
-- Spread suspicious activity across time, merchants, or devices so no single signal stands out
-- Mimic a genuine customer's historical spending behavior
-- Adapt as soon as one strategy stops working
-
-A model that is only ever evaluated on the fraud patterns it was trained on will consistently overestimate its own real-world resilience.
-
----
-
-## Solution
-
-The system is built as a continuous feedback loop rather than a single training pass:
+The goal of **Mastercard AI Defense Lab** is to demonstrate a closed-loop payment-fraud defense system in which a detector is continuously stress-tested and improved by its own simulated attacker:
 
 ```text
-Synthetic Transaction Generation
-              ↓
-        Blue-Team Detection
-              ↓
-       Red-Team Attack Simulation
-              ↓
-      Missed-Attack Identification
-              ↓
-        Adversarial Retraining
-              ↓
-         Improved Blue-Team Model
-              ↓
-             Repeat
+Synthetic Transactions
+        ↓
+   Blue-Team Detection
+        ↓
+   Red-Team Attacks
+        ↓
+  Missed-Attack Discovery
+        ↓
+ Adversarial Retraining
+        ↓
+  Improved Blue Team
+        ↓
+      Repeat
 ```
 
-Each cycle produces a Blue-Team model that has been explicitly stress-tested against attacks generated to exploit its own weaknesses.
+Rather than training a fraud classifier once and reporting a single accuracy number, the system treats defense as an ongoing loop: generate synthetic data, detect fraud, attack the detector, learn from what it misses, and retrain.
 
 ---
 
-## Why This Project Is Different
+## Why This Is Different From a Traditional Fraud Detector
 
 **Traditional fraud detection asks:**
 > "Can the model detect fraud in this dataset?"
 
 **AI Defense Lab asks:**
-> "Can the model survive an attacker that is actively searching for its blind spots — and can it get better every time it fails?"
+> "Can the model survive an attacker that is actively searching for its weaknesses — and does it get measurably better after learning from what it missed?"
 
 | | Traditional Detection | AI Defense Lab |
 |---|---|---|
 | Evaluation | Static historical test set | Adversarially generated attacks |
 | Model lifecycle | Train once, deploy | Continuous generate → attack → detect → retrain loop |
-| Attack awareness | Reactive (after real fraud occurs) | Proactive (simulated before deployment) |
-| Reporting | Single accuracy/F1 number | Per-attack-family detection rates, before vs after |
+| Attack awareness | Reactive, after fraud occurs | Proactive, simulated before deployment |
+| Reporting | Single accuracy/F1 number | Per-attack-family detection rates, before vs after retraining |
 
 ---
 
@@ -114,19 +86,19 @@ The Blue Team is the machine-learning defense layer. It scores each transaction 
 - Recent failed-transaction count
 - Hour of day / time-based patterns
 
-Multiple candidate models are trained and compared:
+Multiple candidate models are trained and compared for model selection:
 
 - **XGBoost**
 - **Random Forest**
 - **Isolation Forest**
 
-The best-performing model on the validation set is selected as the production Blue-Team detector. Each prediction returns a fraud probability, a 0–100 risk score, a risk bucket, and a plain-English narrative describing the main contributing signals.
+The best-performing model on the validation set is selected as the production Blue-Team detector. Each prediction returns a fraud probability, a 0–100 risk score, a risk bucket, and a plain-English narrative describing the main contributing signals (explainability).
 
 ---
 
 ## Red Team — Adversarial Attack Engine
 
-The Red Team generates synthetic adversarial transactions across **seven attack families**, each designed to test a different weakness in the detector:
+The Red Team generates synthetic adversarial transactions across the **seven attack families implemented in the repository**, each targeting a different potential weakness in the detector:
 
 | Attack Family | What It Tests |
 |---|---|
@@ -138,11 +110,11 @@ The Red Team generates synthetic adversarial transactions across **seven attack 
 | `low_and_slow` | Whether many small transactions under the customer's usual pattern go undetected |
 | `behavioral_mimicry` | Whether fraud crafted to resemble the victim's own historical spending behavior is caught |
 
-Each family accepts an **intensity** parameter, allowing attacks to be generated on a spectrum from subtle to aggressive.
+Each family accepts an **intensity** parameter, so attacks can be generated across a spectrum from subtle to aggressive. A generated attack is passed straight back into the Blue-Team detector, which scores it exactly like any other transaction — this is the interaction point between the two teams.
 
 ---
 
-## Closed-Loop Adversarial Learning
+## Closed-Loop Adversarial Training
 
 The core mechanism of the project is the adversarial training loop:
 
@@ -173,13 +145,13 @@ Generate fresh, unseen attacks
    Compare detection rate: before vs after
 ```
 
-This loop can be repeated multiple times, and each pass is intended to close a specific gap that the previous round exposed.
+This loop can be repeated across multiple rounds, with each pass intended to close a specific gap the previous round exposed.
 
 ---
 
 ## Results
 
-All results below come from the project's synthetic research dataset and evaluation run.
+All results below come from the project's synthetic research dataset and evaluation run. **These are synthetic research/hackathon prototype results and are NOT Mastercard production performance figures.**
 
 **Dataset**
 - 160,265 synthetic transactions
@@ -191,14 +163,14 @@ All results below come from the project's synthetic research dataset and evaluat
 
 | Metric | Result |
 |---|---|
-| Accuracy | 97.7% |
-| Precision | 47.1% |
-| Recall | 94.7% |
-| F1 Score | 62.9% |
+| Accuracy | 0.977 |
+| Precision | 0.471 |
+| Recall | 0.947 |
+| F1 Score | 0.629 |
 | ROC-AUC | 0.995 |
 | PR-AUC | 0.917 |
 
-> Accuracy alone is not a meaningful metric on an imbalanced fraud dataset — precision, recall, F1, and PR-AUC are the metrics that matter here.
+> Accuracy alone is not a meaningful metric on an imbalanced fraud dataset — precision, recall, F1, and PR-AUC are the metrics that matter most here.
 
 **Red-Team Attack Detection**
 
@@ -206,18 +178,6 @@ All results below come from the project's synthetic research dataset and evaluat
 |---|---|
 | Before adversarial training | 11.7% |
 | After 2 adversarial-training rounds | 62.0% |
-
-> These are synthetic research/hackathon prototype results. They are **not** Mastercard production performance figures and should not be interpreted as such.
-
----
-
-## Before vs After — Detection Comparison
-
-| Metric | Before Adversarial Training | After Adversarial Training |
-|---|---|---|
-| Overall attack detection rate | 11.7% | 62.0% |
-| Average risk score on attacks | 13.1 / 100 | 63.8 / 100 |
-| Adversarial examples added to training | — | 1,353 |
 
 ---
 
@@ -247,11 +207,11 @@ All results below come from the project's synthetic research dataset and evaluat
 | account_takeover | 99.3% |
 | velocity_attack | 100.0% |
 
-`geo_evasion` remains the hardest attack family to detect with the current feature set — a known, honestly reported limitation rather than an unexplained gap.
+`geo_evasion` remains the hardest attack family to detect with the current feature set — an honestly reported limitation of the prototype, not an unexplained gap.
 
 ---
 
-## Honest Trade-Off
+## Precision / Recall Trade-Off After Adversarial Retraining
 
 Adversarial retraining substantially improved attack coverage, but it also shifted the decision boundary on clean (legitimate) transactions:
 
@@ -272,43 +232,22 @@ Improving adversarial coverage increased false-positive pressure on legitimate t
 
 ---
 
-## Explainable AI
+## Defense Command Center — Interactive Frontend
 
-Each risk score is accompanied by an explanation rather than a bare probability:
+The frontend (`web/index.html`) is a self-contained dashboard that talks directly to the FastAPI backend. In it, users can:
 
-- SHAP-based feature importance for the trained model
-- Ranked list of the top contributing risk signals per transaction
-- A plain-English risk narrative summarizing why a transaction was scored the way it was
-
-**Example**
-
-```text
-Risk Score: 87.4 / 100
-Risk Level: High
-
-Main Contributing Signals:
-- Unusual transaction amount
-- High transaction velocity
-- Geographic distance from home location
-- Recent failed-transaction activity
-```
-
----
-
-## Live Frontend — Defense Command Center
-
-The frontend (`web/index.html`) is a self-contained interactive dashboard that talks directly to the FastAPI backend. It includes:
-
-- **Dashboard** — model performance, fraud recall, ROC-AUC/PR-AUC, closed-loop detection improvement, and system health
-- **Transaction Analyzer** — submit a transaction and view its live fraud probability, risk score, and explanation
-- **Attack Simulator** — choose an attack family and intensity, generate an adversarial transaction, and see whether the detector catches it
-- **Red-Team Arsenal** — an overview of all seven attack families and their evasion characteristics
-- **Model Evaluation** — charts for attack detection by type, closed-loop before/after impact, ROC curve, and top risk signals
-- **API Console / System Health** — live backend status for the FastAPI service and loaded model
+- View the **dashboard** — model performance, fraud recall, ROC-AUC/PR-AUC, closed-loop detection improvement, and system health
+- Use the **Transaction Analyzer** — submit a transaction and view its live fraud probability, risk score, and explanation
+- Use the **Attack Simulator** — choose an attack family and intensity, generate an adversarial transaction, and see whether the detector catches it
+- Browse the **Red-Team Arsenal** — an overview of all seven attack families and their evasion characteristics
+- Review **Model Evaluation** — charts for attack detection by type, closed-loop before/after impact, ROC curve, and top risk signals (explainable AI)
+- Check **System Health / API Console** — live backend status for the FastAPI service and loaded model
 
 ---
 
 ## API Reference
+
+Based on the actual FastAPI backend:
 
 | Endpoint | Method | Description |
 |---|---|---|
@@ -319,3 +258,289 @@ The frontend (`web/index.html`) is a self-contained interactive dashboard that t
 | `/metrics` | GET | Returns pre-computed evaluation metrics for the dashboard |
 
 **Interactive API documentation** (when running locally):
+
+http://localhost:8000/docs
+
+
+
+FastAPI automatically generates an OpenAPI-compatible schema and Swagger UI for all endpoints.
+
+---
+
+## Architecture
+
+```text
+                    ┌────────────────────────┐
+                    │ Synthetic Transaction  │
+                    │       Generator        │
+                    └───────────┬────────────┘
+                                │
+                                ▼
+                    ┌────────────────────────┐
+                    │       BLUE TEAM        │
+                    │ XGBoost / RF / IF      │
+                    │ Fraud Detection Engine │
+                    └───────────┬────────────┘
+                                │
+                          Fraud / Risk Score
+                                │
+                                ▼
+                    ┌────────────────────────┐
+                    │        RED TEAM        │
+                    │ 7 Adversarial Families │
+                    │ Attack Simulation      │
+                    └───────────┬────────────┘
+                                │
+                       Adversarial Transactions
+                                │
+                                ▼
+                    ┌────────────────────────┐
+                    │   Attack Detection     │
+                    │   Missed Attacks       │
+                    └───────────┬────────────┘
+                                │
+                                ▼
+                    ┌────────────────────────┐
+                    │  Adversarial Training  │
+                    │   + Model Retraining   │
+                    └───────────┬────────────┘
+                                │
+                                └───────────► Repeat
+```
+
+---
+
+## Project Structure
+
+```text
+mastercard-ai-defense-lab/
+│
+├── api/
+│   └── main.py
+│
+├── models/
+│   └── trained detectors
+│
+├── notebooks/
+│   └── Mastercard_AI_Defense_Lab_2026.ipynb
+│
+├── outputs/
+│   ├── figures/
+│   ├── metrics/
+│   └── synthetic_transactions.parquet
+│
+├── src/
+│   ├── data_generator.py
+│   ├── preprocessing.py
+│   ├── blue_team.py
+│   ├── red_team.py
+│   ├── adversarial_training.py
+│   ├── evaluation.py
+│   ├── explainability.py
+│   ├── demo.py
+│   └── make_visualizations.py
+│
+├── web/
+│   └── index.html
+│
+├── Dockerfile
+├── requirements.txt
+├── README.md
+└── LICENSE
+```
+
+---
+
+## Local Setup
+
+**1. Clone the repository**
+
+```bash
+git clone https://github.com/SunnyAgrwl05/mastercard-ai-defense-lab.git
+cd mastercard-ai-defense-lab
+```
+
+**2. Create a virtual environment**
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+**3. Install dependencies**
+
+```bash
+pip install -r requirements.txt
+```
+
+**4. Reproduce the pipeline (optional)**
+
+```bash
+python3 src/data_generator.py
+python3 src/blue_team.py
+python3 src/adversarial_training.py
+python3 src/make_visualizations.py
+python3 src/demo.py
+```
+
+**5. Start the API**
+
+```bash
+python3 -m uvicorn api.main:app --host 0.0.0.0 --port 8000
+```
+
+**6. Open the frontend**
+
+http://localhost:8000
+
+
+**7. Open the API docs**
+
+http://localhost:8000/docs
+
+
+---
+
+## Docker
+
+**Build the image**
+
+```bash
+docker build -t mastercard-ai-defense-lab .
+```
+
+**Run the container**
+
+```bash
+docker run -p 8000:8000 mastercard-ai-defense-lab
+```
+
+**Open the app**
+
+
+http://localhost:8000
+
+
+The Docker image packages the API, the trained detector artifacts, and the frontend so the full system runs from a single container.
+
+---
+
+## Notebook
+
+The repository includes a self-contained research notebook:
+
+
+notebooks/Mastercard_AI_Defense_Lab_2026.ipynb
+
+
+
+It walks through the full pipeline in order:
+
+```text
+Data Generation
+      ↓
+Preprocessing
+      ↓
+Blue-Team Training
+      ↓
+Red-Team Simulation
+      ↓
+Adversarial Training
+      ↓
+Evaluation
+      ↓
+Visualization
+```
+
+The notebook can be run locally or adapted to run in a hosted notebook environment such as Kaggle.
+
+---
+
+## Security & Privacy Notice
+
+This project uses **100% synthetic data**. Specifically, this repository:
+
+- Does **not** contain real Mastercard cardholder data
+- Does **not** connect to any Mastercard production system
+- Does **not** process real payment transactions
+- Does **not** expose real customer information
+
+All risk thresholds shown in the dashboard are demonstration thresholds defined for this research prototype, not production Mastercard thresholds.
+
+---
+
+## Limitations
+
+This project is intended for research, education, security experimentation, and hackathon demonstration. Known limitations include:
+
+- Synthetic rather than real-world payment data
+- Simplified behavioral features compared to a production fraud stack
+- Simulated, rather than observed, adversarial attack strategies
+- No integration with a real payment network or card-authorization infrastructure
+- Geographic evasion (`geo_evasion`) remains difficult to detect with the current feature set
+- Adversarial retraining reduces precision on clean transactions, requiring careful threshold management
+
+---
+
+## Future Roadmap
+
+- [ ] Real-time streaming transaction simulation
+- [ ] Graph-based fraud detection
+- [ ] Device fingerprint intelligence
+- [ ] IP reputation signals
+- [ ] Online / incremental learning
+- [ ] More adaptive Red-Team agents
+- [ ] Multi-model ensemble optimization
+- [ ] Human-in-the-loop review queue
+- [ ] Model drift monitoring
+- [ ] Risk-band threshold optimization
+- [ ] Authentication and role-based access control (RBAC)
+
+---
+
+## Tech Stack
+
+**Machine Learning**
+Python · XGBoost · Scikit-learn · SHAP · Pandas · NumPy · PyArrow
+
+**Backend**
+FastAPI · Uvicorn · OpenAPI
+
+**Frontend**
+HTML · CSS · JavaScript
+
+**Infrastructure**
+Docker · Render · GitHub
+
+---
+
+## Author
+
+**Sunny Kumar**
+AI / ML · Full-Stack Development · Generative AI · Cybersecurity
+
+GitHub: https://github.com/SunnyAgrwl05
+
+---
+
+## License
+
+This project is licensed under the MIT License — see [MIT License](LICENSE) for the full text.
+
+---
+
+## Disclaimer
+
+Mastercard AI Defense Lab is an independent research and hackathon prototype. It is not affiliated with, endorsed by, sponsored by, or officially connected to Mastercard, except as described in the context of the relevant innovation challenge. All payment data used in this project is synthetic, and the project does not represent Mastercard's actual fraud-detection systems, thresholds, data, infrastructure, or performance.
+
+---
+
+<div align="center">
+
+**AI Defense Lab — Red Team × Blue Team × Continuous Learning**
+Payment security research prototype built on FastAPI, XGBoost, and SHAP.
+
+🚀 [Live Demo](https://mastercard-ai-defense-lab.onrender.com/) · 💻 [GitHub Repository](https://github.com/SunnyAgrwl05/mastercard-ai-defense-lab)
+
+</div>
+
