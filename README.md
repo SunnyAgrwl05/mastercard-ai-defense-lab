@@ -89,6 +89,11 @@ Each attack has an intensity dial, from subtle to aggressive.
 | account_takeover | 57.3% | 99.3% |
 | **Overall** | **11.7%** | **62.0%** |
 
+<p align="center">
+  <img src="outputs/figures/08_before_vs_after_closed_loop.png" width="48%" />
+  <img src="outputs/figures/04_roc_curve.png" width="48%" />
+</p>
+
 `geo_evasion` stays the hardest to catch — an honest gap, not hidden.
 **The trade-off:** catching more attacks flags more real transactions too.
 
@@ -99,6 +104,10 @@ Each attack has an intensity dial, from subtle to aggressive.
 | F1 | 0.629 | 0.474 |
 
 A real deployment would need threshold tuning and human review to manage this.
+
+<p align="center">
+  <img src="outputs/figures/06_feature_importance.png" width="70%" />
+</p>
 
 ## The Dashboard
 
@@ -212,5 +221,4 @@ This is an independent hackathon prototype, not an official Mastercard product. 
 **Dev by Sunny — AI/ML Engineer & SDE**
 
 </div>
-
 
