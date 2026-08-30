@@ -6,10 +6,11 @@
 [![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github)](https://github.com/SunnyAgrwl05/mastercard-ai-defense-lab)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
-**🚀 Live Demo:** https://mastercard-ai-defense-lab.onrender.com/
-**💻 Repository:** https://github.com/SunnyAgrwl05/mastercard-ai-defense-lab
+**What is this?**
+An AI system that plays both sides of payment fraud. One model (Blue Team) detects fraud. Another (Red Team) attacks it with fake fraud patterns. Every attack it misses gets fed back in, so the detector keeps getting sharper.
 
-A closed-loop Red Team / Blue Team system for payment fraud. It attacks itself, finds its own weak spots, and gets better each round.
+**What can you do with it?**
+Score a transaction and see its risk. Launch an attack and watch the model catch it — or not. Watch detection jump from 11.7% to 62% as the model retrains on its own mistakes.
 
 ![Dashboard](assets/dashboard.png)
 
