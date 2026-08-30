@@ -9,37 +9,31 @@
 **🚀 Live Demo:** https://mastercard-ai-defense-lab.onrender.com/
 **💻 Repository:** https://github.com/SunnyAgrwl05/mastercard-ai-defense-lab
 
-A closed-loop Red Team / Blue Team system for payment fraud. It simulates attacks, detects them, and gets better every time it misses one.
+A closed-loop Red Team / Blue Team system for payment fraud. It attacks itself, finds its own weak spots, and gets better each round.
 
 ![Dashboard](assets/dashboard.png)
 
----
-
-## What This Project Does
-
-Most fraud detectors are trained once and left alone. This one keeps testing itself:
+## How It Works
 
 ```text
-Generate transactions
-        ↓
-   Blue Team detects fraud
-        ↓
-   Red Team attacks the detector
-        ↓
-   Missed attacks are found
-        ↓
-   Model retrains on what it missed
-        ↓
-      Repeat
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  Generate Data   │ ──▶ │  Blue Team       │ ──▶ │  Red Team        │
+│  (transactions)  │     │  detects fraud   │     │  attacks it      │
+└─────────────────┘     └─────────────────┘     └────────┬────────┘
+                                                            │
+                          ┌─────────────────┐              ▼
+                          │  Model retrains  │ ◀── ┌─────────────────┐
+                          │  and improves    │     │  Missed attacks  │
+                          └────────┬────────┘     │  get logged      │
+                                   │               └─────────────────┘
+                                   └──────────────▶ Repeat
 ```
 
-The idea: don't just measure accuracy once — keep attacking your own model and make it stronger every round.
-
----
+The core idea: don't just measure a model once — keep attacking it and let it learn from what it misses.
 
 ## Blue Team (Detection)
 
-The Blue Team is the ML model that scores each transaction using signals like:
+The Blue Team is the model that scores every transaction using signals like:
 
 - Amount and spending baseline
 - Merchant category and risk score
@@ -47,9 +41,7 @@ The Blue Team is the ML model that scores each transaction using signals like:
 - Transaction frequency and failed attempts
 - Time of day
 
-Three models are compared — **XGBoost**, **Random Forest**, and **Isolation Forest** — and the best one is used. Every prediction comes with a risk score, a fraud probability, and a plain-English reason.
-
----
+Three models are compared — **XGBoost**, **Random Forest**, and **Isolation Forest** — the best one is kept. Every score comes with a risk number, a fraud probability, and a plain-English reason.
 
 ## Red Team (Attacks)
 
@@ -67,12 +59,9 @@ The Red Team tries to fool the Blue Team using 7 attack styles:
 
 Each attack has an intensity dial, from subtle to aggressive.
 
----
-
 ## Results
 
 ⚠️ All numbers below are from **synthetic research data**, not Mastercard production data.
-
 **Dataset:** 160,265 transactions · 900 accounts · 80 days · 2% fraud rate
 
 **Blue Team baseline (XGBoost):**
@@ -86,7 +75,7 @@ Each attack has an intensity dial, from subtle to aggressive.
 | ROC-AUC | 0.995 |
 | PR-AUC | 0.917 |
 
-**Attack detection, before vs after adversarial training:**
+**Attack detection, before vs after retraining:**
 
 | Attack | Before | After |
 |---|---|---|
@@ -99,9 +88,8 @@ Each attack has an intensity dial, from subtle to aggressive.
 | account_takeover | 57.3% | 99.3% |
 | **Overall** | **11.7%** | **62.0%** |
 
-`geo_evasion` is still the hardest to catch — an honest gap, not hidden.
-
-**The trade-off:** catching more attacks made the model flag more legitimate transactions too.
+`geo_evasion` stays the hardest to catch — an honest gap, not hidden.
+**The trade-off:** catching more attacks flags more real transactions too.
 
 | Metric | Before | After |
 |---|---|---|
@@ -110,8 +98,6 @@ Each attack has an intensity dial, from subtle to aggressive.
 | F1 | 0.629 | 0.474 |
 
 A real deployment would need threshold tuning and human review to manage this.
-
----
 
 ## The Dashboard
 
@@ -122,8 +108,6 @@ The live site (`web/index.html`) lets you:
 - Browse all 7 attack types and their success rates
 - See model charts — ROC curve, detection rates, feature importance
 - Check live API health
-
----
 
 ## API
 
@@ -136,20 +120,6 @@ The live site (`web/index.html`) lets you:
 | `/metrics` | GET | Get evaluation numbers |
 
 Docs at `http://localhost:8000/docs` when running locally.
-
----
-
-## Architecture
-
-```text
-Synthetic Data → Blue Team (detects) → Red Team (attacks)
-                                              ↓
-                                      Missed attacks
-                                              ↓
-                                  Retrain Blue Team → Repeat
-```
-
----
 
 ## Project Structure
 
@@ -173,8 +143,6 @@ mastercard-ai-defense-lab/
 └── README.md
 ```
 
----
-
 ## Run It Locally
 
 ```bash
@@ -195,23 +163,13 @@ docker build -t mastercard-ai-defense-lab .
 docker run -p 8000:8000 mastercard-ai-defense-lab
 ```
 
----
-
 ## Notebook
 
 `notebooks/Mastercard_AI_Defense_Lab_2026.ipynb` walks through the whole pipeline — data, training, attacks, retraining, evaluation. Works locally or on Kaggle.
 
----
-
 ## Data & Privacy
 
-All data here is synthetic. This project:
-
-- Has no real Mastercard cardholder data
-- Doesn't touch any production payment system
-- Uses demo thresholds, not real ones
-
----
+All data here is synthetic. This project has no real Mastercard cardholder data, doesn't touch any production payment system, and uses demo thresholds only.
 
 ## Known Limitations
 
@@ -221,8 +179,6 @@ All data here is synthetic. This project:
 - Retraining trades some precision for better attack coverage
 - No real payment-network integration
 
----
-
 ## What's Next
 
 - Real-time streaming detection
@@ -231,8 +187,6 @@ All data here is synthetic. This project:
 - Human review queue
 - Model drift monitoring
 
----
-
 ## Tech Stack
 
 **ML:** Python · XGBoost · Scikit-learn · SHAP · Pandas · NumPy
@@ -240,20 +194,9 @@ All data here is synthetic. This project:
 **Frontend:** HTML · CSS · JavaScript
 **Infra:** Docker · Render · GitHub
 
----
-
-## Author
-
-**Sunny Kumar** — AI/ML · Full-Stack · Cybersecurity
-GitHub: https://github.com/SunnyAgrwl05
-
----
-
 ## License
 
 MIT License — see [LICENSE](LICENSE).
-
----
 
 ## Disclaimer
 
@@ -265,6 +208,6 @@ This is an independent hackathon prototype, not an official Mastercard product. 
 
 🚀 [Live Demo](https://mastercard-ai-defense-lab.onrender.com/) · 💻 [GitHub](https://github.com/SunnyAgrwl05/mastercard-ai-defense-lab)
 
+**Dev by Sunny — AI/ML Engineer & SDE**
+
 </div>
-
-
