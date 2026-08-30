@@ -1,0 +1,8 @@
+attack_type,number_generated,number_detected,avg_risk_score,number_missed,detection_rate,false_negative_rate
+geo_evasion,150,1,1.13,149,0.0067,0.9933
+velocity_attack,150,2,2.41,148,0.0133,0.9867
+low_and_slow,150,3,5.39,147,0.02,0.98
+amount_manipulation,150,7,7.34,143,0.0467,0.9533
+merchant_switching,150,12,8.33,138,0.08,0.92
+behavioral_mimicry,150,12,10.12,138,0.08,0.92
+account_takeover,150,86,57.05,64,0.5733,0.4267

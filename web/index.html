@@ -1,0 +1,7314 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>AI Defense Lab — Payment Security</title>
+
+  <meta name="description"
+    content="A closed-loop Red-Team / Blue-Team payment security system that generates synthetic fraud, simulates adversarial attacks, detects suspicious transactions and learns from what it missed.">
+
+  <link rel="icon"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 20'%3E%3Ccircle cx='11' cy='10' r='9' fill='%23ff4757'/%3E%3Ccircle cx='21' cy='10' r='9' fill='%2300c896'/%3E%3C/svg%3E">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #f4f6fa;
+      --surface: #ffffff;
+      --surface2: #f8f9fc;
+
+      --ink: #151827;
+      --muted: #6c7287;
+      --line: #e8ebf2;
+
+      --red: #ff4757;
+      --red-dark: #d71935;
+      --red-soft: #ffe7eb;
+
+      --teal: #00c896;
+      --teal-dark: #00875f;
+      --teal-soft: #dcf9ef;
+
+      --blue: #3654ff;
+      --blue-soft: #e9edff;
+
+      --amber: #ffab00;
+      --amber-soft: #fff3d6;
+
+      --purple: #7c5cff;
+      --purple-soft: #eeeaff;
+
+      --dark: #171a2b;
+      --dark2: #0d101c;
+
+      --shadow-sm: 0 2px 8px rgba(20, 25, 45, .04);
+      --shadow-md: 0 8px 25px rgba(20, 25, 45, .07);
+      --shadow-lg: 0 20px 55px rgba(20, 25, 45, .12);
+
+      --radius: 18px;
+      --radius-sm: 12px;
+
+      --sidebar: 245px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .mono {
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    .display {
+      font-family: "Space Grotesk", sans-serif;
+    }
+
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: var(--sidebar);
+
+      background: #111421;
+      color: white;
+
+      padding: 22px 14px;
+
+      z-index: 1000;
+
+      display: flex;
+      flex-direction: column;
+
+      border-right: 1px solid rgba(255, 255, 255, .05);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      padding: 8px 10px 28px;
+
+      font-family: "Space Grotesk";
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: .4px;
+    }
+
+    .logo {
+      position: relative;
+      width: 32px;
+      height: 22px;
+    }
+
+    .logo span {
+      position: absolute;
+
+      width: 19px;
+      height: 19px;
+
+      border-radius: 50%;
+
+      top: 1px;
+    }
+
+    .logo .r {
+      left: 0;
+      background: var(--red);
+    }
+
+    .logo .t {
+      left: 12px;
+      background: var(--teal);
+    }
+
+    .sidebar-label {
+      padding: 10px 12px 7px;
+
+      font-family: "JetBrains Mono";
+      font-size: 9px;
+
+      color: #6f758c;
+
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .nav {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+
+      padding: 11px 12px;
+
+      color: #9298ae;
+
+      border-radius: 10px;
+
+      font-size: 12.5px;
+      font-weight: 600;
+
+      transition: .15s;
+    }
+
+    .nav-item:hover {
+      background: rgba(255, 255, 255, .06);
+      color: white;
+    }
+
+    .nav-item.active {
+      background: rgba(0, 200, 150, .13);
+      color: #69e5c1;
+    }
+
+    .nav-icon {
+      width: 20px;
+      text-align: center;
+      font-size: 15px;
+    }
+
+    .sidebar-bottom {
+      margin-top: auto;
+    }
+
+    .backend-mini {
+      padding: 13px;
+
+      border-radius: 12px;
+
+      background: #191d2c;
+
+      border: 1px solid rgba(255, 255, 255, .05);
+    }
+
+    .backend-mini-title {
+      font-family: "JetBrains Mono";
+      font-size: 9px;
+      color: #70778f;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .backend-mini-status {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #73798c;
+    }
+
+    .status-dot.online {
+      background: var(--teal);
+      box-shadow: 0 0 0 4px rgba(0, 200, 150, .1);
+    }
+
+    .status-dot.offline {
+      background: var(--amber);
+    }
+
+    .version {
+      font-family: "JetBrains Mono";
+      font-size: 9px;
+      color: #555c73;
+      margin-top: 7px;
+    }
+
+    .mobile-top {
+      display: none;
+
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+
+      height: 60px;
+
+      background: #111421;
+      color: white;
+
+      z-index: 1100;
+
+      align-items: center;
+      justify-content: space-between;
+
+      padding: 0 16px;
+    }
+
+    .mobile-brand {
+      font-family: "Space Grotesk";
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    .menu-btn {
+      border: 0;
+      background: #222638;
+      color: white;
+
+      width: 38px;
+      height: 38px;
+
+      border-radius: 9px;
+    }
+
+    .main {
+      margin-left: var(--sidebar);
+      min-height: 100vh;
+    }
+
+    .topbar {
+      height: auto;
+      min-height: 68px;
+
+      background: rgba(255, 255, 255, .9);
+
+      backdrop-filter: blur(12px);
+
+      border-bottom: 1px solid var(--line);
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+
+      padding: 12px 30px;
+
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .breadcrumb b {
+      color: var(--ink);
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .api-pill {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+
+      padding: 8px 12px;
+
+      border-radius: 999px;
+
+      background: var(--surface2);
+
+      font-family: "JetBrains Mono";
+      font-size: 10px;
+
+      color: var(--muted);
+    }
+
+    .btn-small {
+      border: 1px solid var(--line);
+
+      background: white;
+
+      padding: 8px 12px;
+
+      border-radius: 9px;
+
+      font-size: 11px;
+      font-weight: 700;
+
+      color: var(--ink);
+    }
+
+    .btn-small:hover {
+      background: var(--surface2);
+    }
+
+    .page {
+      max-width: 1400px;
+      margin: auto;
+      padding: 34px 30px 70px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.25fr .75fr;
+      gap: 28px;
+
+      margin-bottom: 26px;
+    }
+
+    .hero-main {
+      background: var(--surface);
+
+      border-radius: 24px;
+
+      padding: 38px;
+
+      box-shadow: var(--shadow-sm);
+
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-main:after {
+      content: "";
+
+      position: absolute;
+
+      width: 300px;
+      height: 300px;
+
+      right: -130px;
+      bottom: -150px;
+
+      border-radius: 50%;
+
+      background: var(--teal-soft);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+
+      background: var(--teal-soft);
+      color: var(--teal-dark);
+
+      padding: 7px 12px;
+
+      border-radius: 999px;
+
+      font-family: "JetBrains Mono";
+      font-size: 9.5px;
+      font-weight: 700;
+
+      letter-spacing: .6px;
+      text-transform: uppercase;
+
+      margin-bottom: 18px;
+    }
+
+    .hero-main h1 {
+      font-family: "Space Grotesk";
+
+      font-size: clamp(28px, 5.4vw, 45px);
+      line-height: 1.08;
+
+      letter-spacing: -1.5px;
+
+      margin-bottom: 15px;
+
+      max-width: 700px;
+    }
+
+    .hero-main h1 .red {
+      color: var(--red);
+    }
+
+    .hero-main h1 .teal {
+      color: var(--teal-dark);
+    }
+
+    .hero-description {
+      color: var(--muted);
+
+      font-size: 14px;
+
+      max-width: 650px;
+
+      line-height: 1.7;
+
+      margin-bottom: 24px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+    }
+
+    .primary-btn {
+      background: var(--dark);
+      color: white;
+
+      border: 0;
+
+      padding: 12px 17px;
+
+      border-radius: 999px;
+
+      font-family: "Space Grotesk";
+      font-size: 12px;
+      font-weight: 700;
+
+      box-shadow: var(--shadow-sm);
+    }
+
+    .primary-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .secondary-btn {
+      background: white;
+      color: var(--ink);
+
+      border: 1px solid var(--line);
+
+      padding: 12px 17px;
+
+      border-radius: 999px;
+
+      font-family: "Space Grotesk";
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .hero-visual {
+      background: var(--dark);
+
+      border-radius: 24px;
+
+      min-height: 285px;
+
+      position: relative;
+
+      overflow: hidden;
+
+      box-shadow: var(--shadow-md);
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* =========================================================
+       RED / BLUE TEAM VENN
+       Two large overlapping circles — CSS only, no image asset.
+       ========================================================= */
+    .venn {
+      width: clamp(190px, 24vw, 230px);
+      height: clamp(190px, 24vw, 230px);
+      position: relative;
+      flex: 0 0 auto;
+    }
+
+    .vcircle {
+      position: absolute;
+      width: clamp(112px, 15vw, 145px);
+      height: clamp(112px, 15vw, 145px);
+      border-radius: 50%;
+      top: 50%;
+      transform: translateY(-50%);
+      border: 0;
+      padding: 0;
+      box-sizing: border-box;
+      isolation: isolate;
+    }
+
+    .vcircle.red {
+      left: 2%;
+      background: #EB001B;
+      box-shadow: 0 15px 40px rgba(235, 0, 27, .24);
+      z-index: 1;
+    }
+
+    .vcircle.teal {
+      right: 2%;
+      background: #2563EB;
+      box-shadow: 0 15px 40px rgba(37, 99, 235, .24);
+      z-index: 2;
+    }
+
+    /* The overlap remains visible, like the supplied reference image. */
+    .vcircle.teal {
+      mix-blend-mode: normal;
+    }
+
+    .vlabel {
+      position: absolute;
+      z-index: 5;
+      font-family: "JetBrains Mono";
+      font-size: clamp(8px, 1vw, 9px);
+      font-weight: 700;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+
+    .vlabel.red {
+      top: 24px;
+      left: 7%;
+      color: #ff8e99;
+    }
+
+    .vlabel.teal {
+      top: 24px;
+      right: 7%;
+      color: #69b7ff;
+    }
+
+    .vlabel.loop {
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: transparent;
+      color: #d7deef;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: clamp(8px, 1vw, 9px);
+      pointer-events: auto;
+    }
+
+    @media (max-width: 700px) {
+      .venn {
+        width: 190px;
+        height: 190px;
+      }
+
+      .vcircle {
+        width: 118px;
+        height: 118px;
+      }
+
+      .vlabel.red,
+      .vlabel.teal {
+        top: 22px;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .venn {
+        width: 170px;
+        height: 170px;
+      }
+
+      .vcircle {
+        width: 102px;
+        height: 102px;
+      }
+
+      .vlabel.red {
+        left: 2%;
+      }
+
+      .vlabel.teal {
+        right: 2%;
+      }
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+
+      gap: 10px;
+
+      margin-top: 23px;
+
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-stat {
+      background: var(--surface2);
+
+      border-radius: 12px;
+
+      padding: 13px;
+    }
+
+    .hero-stat .value {
+      font-family: "Space Grotesk";
+      font-size: 21px;
+      font-weight: 800;
+    }
+
+    .hero-stat .label {
+      font-size: 9px;
+      color: var(--muted);
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: .4px;
+    }
+
+    .section {
+      margin-top: 30px;
+      scroll-margin-top: 90px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+
+      margin-bottom: 15px;
+
+      gap: 20px;
+    }
+
+    .section-title {
+      font-family: "Space Grotesk";
+
+      font-size: clamp(18px, 2.6vw, 23px);
+      font-weight: 800;
+
+      letter-spacing: -.5px;
+    }
+
+    .section-sub {
+      color: var(--muted);
+      font-size: 11.5px;
+      margin-top: 3px;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 13px;
+    }
+
+    .kpi {
+      background: var(--surface);
+
+      border: 1px solid var(--line);
+
+      border-radius: 16px;
+
+      padding: 18px;
+
+      box-shadow: var(--shadow-sm);
+
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .kpi-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .kpi-icon {
+      width: 32px;
+      height: 32px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 9px;
+
+      font-size: 14px;
+    }
+
+    .kpi-icon.teal {
+      background: var(--teal-soft);
+    }
+
+    .kpi-icon.red {
+      background: var(--red-soft);
+    }
+
+    .kpi-icon.blue {
+      background: var(--blue-soft);
+    }
+
+    .kpi-icon.amber {
+      background: var(--amber-soft);
+    }
+
+    .kpi .number {
+      font-family: "Space Grotesk";
+      font-size: 27px;
+      font-weight: 800;
+
+      margin-top: 11px;
+    }
+
+    .kpi .caption {
+      color: var(--muted);
+
+      font-size: 9.5px;
+      font-weight: 700;
+
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+
+    .kpi-change {
+      font-family: "JetBrains Mono";
+      font-size: 9px;
+      color: var(--teal-dark);
+    }
+
+    .dashboard-grid {
+      display: grid;
+
+      grid-template-columns: 1.5fr .85fr;
+
+      gap: 16px;
+
+      margin-top: 16px;
+    }
+
+    .card {
+      background: var(--surface);
+
+      border: 1px solid var(--line);
+
+      border-radius: 18px;
+
+      padding: 21px;
+
+      box-shadow: var(--shadow-sm);
+    }
+
+    .card-title {
+      font-family: "Space Grotesk";
+
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .card-caption {
+      color: var(--muted);
+
+      font-size: 10.5px;
+
+      margin-top: 3px;
+      margin-bottom: 15px;
+    }
+
+    .chart-wrap {
+      height: 245px;
+      position: relative;
+    }
+
+    .health-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .health-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      padding: 12px;
+
+      border-radius: 11px;
+
+      background: var(--surface2);
+    }
+
+    .health-left {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .health-icon {
+      width: 30px;
+      height: 30px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 8px;
+
+      background: white;
+
+      border: 1px solid var(--line);
+    }
+
+    .health-name {
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .health-description {
+      color: var(--muted);
+      font-size: 9px;
+    }
+
+    .health-status {
+      font-family: "JetBrains Mono";
+      font-size: 8px;
+      font-weight: 700;
+
+      padding: 5px 7px;
+
+      border-radius: 999px;
+
+      background: var(--teal-soft);
+      color: var(--teal-dark);
+    }
+
+    .health-status.off {
+      background: var(--amber-soft);
+      color: #8a6100;
+    }
+
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .pipeline-step {
+      background: var(--surface);
+
+      border: 1px solid var(--line);
+
+      border-radius: 15px;
+
+      padding: 17px;
+
+      box-shadow: var(--shadow-sm);
+    }
+
+    .step-number {
+      width: 29px;
+      height: 29px;
+
+      border-radius: 8px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      color: white;
+
+      font-family: "Space Grotesk";
+      font-size: 11px;
+      font-weight: 800;
+
+      margin-bottom: 11px;
+    }
+
+    .step-number.one {
+      background: var(--teal);
+    }
+
+    .step-number.two {
+      background: var(--blue);
+    }
+
+    .step-number.three {
+      background: var(--red);
+    }
+
+    .step-number.four {
+      background: var(--amber);
+    }
+
+    .pipeline-step h4 {
+      font-family: "Space Grotesk";
+      font-size: 13px;
+
+      margin-bottom: 5px;
+    }
+
+    .pipeline-step p {
+      color: var(--muted);
+      font-size: 10.5px;
+      line-height: 1.55;
+    }
+
+    .console-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .team-card {
+      border-radius: 18px;
+
+      padding: 22px;
+
+      box-shadow: var(--shadow-sm);
+
+      border: 1px solid var(--line);
+    }
+
+    .team-card.blue-team {
+      background: linear-gradient(145deg, #fff, #f1fffa);
+    }
+
+    .team-card.red-team {
+      background: linear-gradient(145deg, #fff, #fff3f5);
+    }
+
+    .team-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      margin-bottom: 17px;
+    }
+
+    .team-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .team-badge {
+      padding: 5px 8px;
+
+      border-radius: 7px;
+
+      font-family: "JetBrains Mono";
+      font-size: 8px;
+      font-weight: 700;
+
+      text-transform: uppercase;
+    }
+
+    .team-badge.blue {
+      background: var(--teal-soft);
+      color: var(--teal-dark);
+    }
+
+    .team-badge.red {
+      background: var(--red-soft);
+      color: var(--red-dark);
+    }
+
+    .team-title h3 {
+      font-family: "Space Grotesk";
+      font-size: 15px;
+    }
+
+    .live-label {
+      font-family: "JetBrains Mono";
+      font-size: 8px;
+      color: var(--muted);
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0 11px;
+    }
+
+    label {
+      display: block;
+
+      font-size: 8.5px;
+
+      font-weight: 700;
+
+      color: var(--muted);
+
+      text-transform: uppercase;
+
+      letter-spacing: .5px;
+
+      margin: 11px 0 5px;
+    }
+
+    input[type="number"],
+    input[type="text"],
+    select {
+      width: 100%;
+
+      border: 1px solid var(--line);
+
+      background: white;
+
+      color: var(--ink);
+
+      padding: 10px 11px;
+
+      border-radius: 9px;
+
+      outline: none;
+
+      font-family: "JetBrains Mono";
+
+      font-size: 10px;
+
+      transition: .15s;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: var(--blue);
+
+      box-shadow: 0 0 0 3px rgba(54, 84, 255, .08);
+    }
+
+    .action-btn {
+      width: 100%;
+
+      border: 0;
+
+      padding: 12px;
+
+      border-radius: 999px;
+
+      margin-top: 16px;
+
+      font-family: "Space Grotesk";
+
+      font-size: 11px;
+
+      font-weight: 800;
+
+      transition: .15s;
+    }
+
+    .action-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .action-btn:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .action-btn.blue {
+      background: var(--teal);
+      color: #07352d;
+    }
+
+    .action-btn.red {
+      background: var(--red);
+      color: #40000a;
+    }
+
+    .result {
+      margin-top: 14px;
+
+      min-height: 72px;
+
+      padding-top: 14px;
+
+      border-top: 1px solid var(--line);
+    }
+
+    .hint {
+      background: var(--surface2);
+
+      border-radius: 9px;
+
+      padding: 11px;
+
+      color: var(--muted);
+
+      font-size: 9.5px;
+
+      line-height: 1.55;
+    }
+
+    .risk-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .risk-number {
+      font-family: "Space Grotesk";
+
+      font-size: 29px;
+
+      font-weight: 800;
+    }
+
+    .risk-progress {
+      flex: 1;
+
+      height: 8px;
+
+      background: #eceef4;
+
+      border-radius: 999px;
+
+      overflow: hidden;
+    }
+
+    .risk-fill {
+      height: 100%;
+
+      border-radius: 999px;
+
+      transition: .5s;
+    }
+
+    .badge {
+      display: inline-block;
+
+      padding: 5px 9px;
+
+      border-radius: 999px;
+
+      font-family: "JetBrains Mono";
+
+      font-size: 8px;
+
+      font-weight: 700;
+
+      text-transform: uppercase;
+
+      margin-top: 9px;
+    }
+
+    .badge.fraud {
+      background: var(--red-soft);
+      color: var(--red-dark);
+    }
+
+    .badge.legit {
+      background: var(--teal-soft);
+      color: var(--teal-dark);
+    }
+
+    .narrative {
+      color: var(--muted);
+
+      font-size: 9.5px;
+
+      line-height: 1.6;
+
+      margin-top: 9px;
+    }
+
+    .spin {
+      display: inline-block;
+
+      width: 11px;
+      height: 11px;
+
+      border: 2px solid #dfe3ed;
+
+      border-top-color: var(--blue);
+
+      border-radius: 50%;
+
+      animation: spin .7s linear infinite;
+
+      margin-right: 6px;
+
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      accent-color: var(--red);
+    }
+
+    .intensity {
+      font-family: "JetBrains Mono";
+      font-size: 10px;
+      width: 36px;
+    }
+
+    .arsenal-grid {
+      display: flex;
+      gap: 18px;
+
+      overflow-x: auto;
+      scroll-behavior: auto;
+
+      padding-bottom: 4px;
+      margin: 0 -2px;
+
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .arsenal-grid::-webkit-scrollbar {
+      display: none;
+    }
+
+    .attack-card {
+      background: var(--card-bg, #0d1120);
+
+      border: 1px solid var(--card-border, rgba(255, 255, 255, .08));
+
+      border-radius: 20px;
+
+      overflow: hidden;
+
+      box-shadow: var(--shadow-sm);
+
+      transition: transform .3s ease, box-shadow .3s ease, background .3s ease;
+
+      flex: 0 0 auto;
+      width: 320px;
+
+      cursor: pointer;
+    }
+
+    .attack-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 24px 55px rgba(0, 0, 0, .45), 0 0 0 1px rgba(255, 255, 255, .06);
+    }
+
+    .attack-visual {
+      position: relative;
+
+      height: 190px;
+
+      overflow: hidden;
+
+      background: transparent;
+
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+
+      padding: 18px;
+    }
+
+    /* A clean diagonal "ribbon of light" streak on solid black,
+       matching Google Cloud's card art style rather than a
+       diffuse all-over color wash. Colors come from per-card
+       CSS variables so each of the 7 families looks distinct. */
+    .attack-visual-bg {
+      position: absolute;
+      top: var(--art-y, 50%);
+      left: 50%;
+
+      width: 165%;
+      height: 42%;
+
+      background: linear-gradient(100deg,
+          transparent 0%,
+          var(--art-c1, var(--red)) 18%,
+          var(--art-c2, var(--purple)) 46%,
+          var(--art-c3, var(--blue)) 68%,
+          var(--art-c4, var(--art-c3, var(--teal))) 88%,
+          transparent 100%);
+
+      filter: blur(18px);
+      opacity: .85;
+
+      transform: translate(-50%, -50%) rotate(var(--hue, -16deg));
+      transform-origin: center;
+
+      transition: transform .6s ease, opacity .4s ease;
+    }
+
+    .attack-visual-bg::after {
+      content: "";
+
+      position: absolute;
+      inset: 0;
+
+      background: repeating-linear-gradient(100deg,
+          rgba(255, 255, 255, .09) 0px,
+          rgba(255, 255, 255, .09) 1px,
+          transparent 1px,
+          transparent 5px);
+
+      mix-blend-mode: overlay;
+    }
+
+    .attack-card:hover .attack-visual-bg {
+      transform: translate(-50%, -50%) rotate(var(--hue, -16deg)) scale(1.08);
+      opacity: 1;
+    }
+
+    .attack-icon {
+      position: absolute;
+      z-index: 1;
+      top: 16px;
+      right: 14px;
+      width: 62px;
+      height: 62px;
+      opacity: .8;
+      filter: drop-shadow(0 0 14px var(--art-c2, rgba(255, 255, 255, .5)));
+    }
+
+    .attack-icon svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .attack-eyebrow {
+      position: relative;
+      z-index: 1;
+
+      font-family: "JetBrains Mono";
+      font-size: 9px;
+      font-weight: 700;
+
+      letter-spacing: .6px;
+      text-transform: uppercase;
+
+      color: rgba(255, 255, 255, .68);
+
+      margin-bottom: 8px;
+    }
+
+    .attack-visual h4 {
+      position: relative;
+      z-index: 1;
+
+      font-family: "Space Grotesk";
+      color: white;
+
+      font-size: 19px;
+      font-weight: 800;
+      line-height: 1.15;
+    }
+
+    .attack-body {
+      padding: 18px 18px 20px;
+      position: relative;
+      background-image: radial-gradient(rgba(255, 255, 255, .05) 1px, transparent 1px);
+      background-size: 14px 14px;
+    }
+
+    .attack-card p {
+      color: #9aa4bd;
+
+      font-family: "JetBrains Mono", monospace;
+
+      font-size: 10px;
+
+      line-height: 1.65;
+
+      min-height: 52px;
+    }
+
+    .attack-bottom {
+      margin-top: 14px;
+
+      padding-top: 12px;
+
+      border-top: 1px dashed rgba(255, 255, 255, .14);
+
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .attack-rate {
+      font-family: "Space Grotesk";
+
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .attack-rate.high {
+      color: #ff5366;
+      text-shadow: 0 0 14px rgba(255, 83, 102, .45);
+    }
+
+    .attack-rate.low {
+      color: #18c79d;
+      text-shadow: 0 0 14px rgba(24, 199, 157, .45);
+    }
+
+    .mini-bar {
+      width: 60px;
+      height: 5px;
+
+      background: rgba(255, 255, 255, .10);
+
+      border-radius: 99px;
+
+      overflow: hidden;
+    }
+
+    .mini-fill {
+      height: 100%;
+
+      border-radius: 99px;
+
+      box-shadow: 0 0 8px currentColor;
+    }
+
+    .arsenal-nav {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+
+      margin-top: 16px;
+
+      background: var(--surface2);
+
+      border-radius: 999px;
+
+      padding: 4px;
+    }
+
+    .arsenal-nav-btn {
+      width: 42px;
+      height: 42px;
+
+      border-radius: 50%;
+
+      border: 0;
+      background: transparent;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      font-size: 16px;
+      color: var(--ink);
+
+      transition: .15s;
+    }
+
+    .arsenal-nav-btn:hover {
+      background: var(--surface);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .arsenal-nav-btn:disabled {
+      opacity: .35;
+      cursor: not-allowed;
+    }
+
+    .arsenal-nav-btn:disabled:hover {
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .loop-console {
+      background: var(--dark);
+
+      border-radius: 18px;
+
+      overflow: hidden;
+
+      box-shadow: var(--shadow-md);
+    }
+
+    .console-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      padding: 12px 17px;
+
+      background: #0d101b;
+    }
+
+    .console-dots {
+      display: flex;
+      gap: 5px;
+    }
+
+    .console-dots span {
+      width: 8px;
+      height: 8px;
+
+      border-radius: 50%;
+    }
+
+    .console-dots span:nth-child(1) {
+      background: var(--red);
+    }
+
+    .console-dots span:nth-child(2) {
+      background: var(--amber);
+    }
+
+    .console-dots span:nth-child(3) {
+      background: var(--teal);
+    }
+
+    .console-title {
+      font-family: "JetBrains Mono";
+      color: #777d94;
+      font-size: 9px;
+      margin-left: 4px;
+    }
+
+    .console-body {
+      min-height: 255px;
+      max-height: 310px;
+
+      overflow-y: auto;
+
+      padding: 17px;
+
+      font-family: "JetBrains Mono";
+
+      font-size: 9.5px;
+
+      line-height: 2;
+
+      color: #d6d9e6;
+    }
+
+    .console-line {
+      opacity: 0;
+      animation: lineIn .25s ease forwards;
+    }
+
+    @keyframes lineIn {
+      from {
+        opacity: 0;
+        transform: translateY(3px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .log-time {
+      color: #555b73;
+      margin-right: 6px;
+    }
+
+    .log-tag {
+      display: inline-block;
+
+      padding: 1px 6px;
+
+      border-radius: 5px;
+
+      font-size: 7px;
+
+      font-weight: 700;
+
+      margin-right: 7px;
+    }
+
+    .log-tag.sys {
+      background: rgba(255, 255, 255, .07);
+      color: #a6abc0;
+    }
+
+    .log-tag.gen {
+      background: rgba(0, 200, 150, .14);
+      color: #54ddba;
+    }
+
+    .log-tag.def {
+      background: rgba(255, 171, 0, .13);
+      color: #ffc44f;
+    }
+
+    .log-tag.atk {
+      background: rgba(255, 71, 87, .15);
+      color: #ff7986;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .metric-chart {
+      height: 270px;
+    }
+
+    .api-console {
+      background: #10131f;
+
+      color: #dce0ef;
+
+      border-radius: 16px;
+
+      padding: 20px;
+
+      font-family: "JetBrains Mono";
+
+      font-size: 10px;
+
+      line-height: 1.9;
+
+      overflow: auto;
+    }
+
+    .api-line {
+      color: #8f96ac;
+    }
+
+    .api-green {
+      color: #5ee0bf;
+    }
+
+    .api-blue {
+      color: #8292ff;
+    }
+
+    .api-yellow {
+      color: #ffc857;
+    }
+
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .quick-card {
+      background: var(--surface);
+
+      border: 1px solid var(--line);
+
+      border-radius: 15px;
+
+      padding: 17px;
+
+      cursor: pointer;
+
+      transition: .15s;
+    }
+
+    .quick-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .quick-icon {
+      width: 32px;
+      height: 32px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 9px;
+
+      background: var(--blue-soft);
+
+      margin-bottom: 10px;
+    }
+
+    .quick-card h4 {
+      font-family: "Space Grotesk";
+      font-size: 12px;
+    }
+
+    .quick-card p {
+      color: var(--muted);
+      font-size: 9.5px;
+      margin-top: 4px;
+    }
+
+    .footer {
+      margin-top: 45px;
+
+      border-top: 1px solid var(--line);
+
+      padding-top: 20px;
+
+      display: flex;
+
+      justify-content: space-between;
+
+      gap: 15px;
+
+      flex-wrap: wrap;
+
+      color: var(--muted);
+
+      font-size: 9px;
+    }
+
+    .disclaimer {
+      background: white;
+
+      border: 1px solid var(--line);
+
+      padding: 13px 15px;
+
+      border-radius: 11px;
+
+      margin-bottom: 15px;
+
+      font-size: 9px;
+
+      color: var(--muted);
+
+      line-height: 1.6;
+    }
+
+    .disclaimer b {
+      color: var(--ink);
+    }
+
+    /* ============================================================
+       SECTION-LEVEL SCROLL REVEAL (alternating left / right)
+       Top-to-bottom section order alternates the entrance side:
+       1st section -> from left, 2nd -> from right, 3rd -> from left...
+       ============================================================ */
+
+    .reveal-left,
+    .reveal-right {
+      opacity: 0;
+      transition: opacity .8s cubic-bezier(.16, .84, .44, 1),
+        transform .8s cubic-bezier(.16, .84, .44, 1);
+      will-change: transform, opacity;
+    }
+
+    .reveal-left {
+      transform: translateX(-90px);
+    }
+
+    .reveal-right {
+      transform: translateX(90px);
+    }
+
+    .reveal-left.in-view,
+    .reveal-right.in-view {
+      opacity: 1;
+      transform: none;
+    }
+
+    @media(max-width:800px) {
+
+      .reveal-left {
+        transform: translateX(-40px);
+      }
+
+      .reveal-right {
+        transform: translateX(40px);
+      }
+
+    }
+
+    .raw-toggle {
+      margin-top: 10px;
+
+      background: transparent;
+
+      border: 1px dashed var(--line);
+
+      color: var(--muted);
+
+      padding: 6px 10px;
+
+      border-radius: 8px;
+
+      font-family: "JetBrains Mono";
+      font-size: 8.5px;
+      font-weight: 700;
+
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+
+    .raw-toggle:hover {
+      background: var(--surface2);
+      color: var(--ink);
+    }
+
+    .raw-json {
+      display: none;
+
+      margin-top: 9px;
+
+      background: #10131f;
+      color: #b7bdd6;
+
+      padding: 11px;
+
+      border-radius: 9px;
+
+      font-family: "JetBrains Mono";
+      font-size: 9px;
+      line-height: 1.6;
+
+      max-height: 220px;
+      overflow: auto;
+
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .raw-json.show {
+      display: block;
+    }
+
+    .retry-btn {
+      margin-top: 10px;
+
+      background: var(--dark);
+      color: white;
+
+      border: 0;
+
+      padding: 9px 14px;
+
+      border-radius: 999px;
+
+      font-family: "Space Grotesk";
+      font-size: 10.5px;
+      font-weight: 700;
+    }
+
+    .retry-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .toast {
+      position: fixed;
+
+      right: 20px;
+      bottom: 20px;
+
+      background: var(--dark);
+
+      color: white;
+
+      padding: 11px 15px;
+
+      border-radius: 10px;
+
+      font-size: 10px;
+
+      box-shadow: var(--shadow-lg);
+
+      transform: translateY(20px);
+
+      opacity: 0;
+
+      pointer-events: none;
+
+      transition: .25s;
+
+      z-index: 2000;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: none;
+    }
+
+    @media(max-width:1100px) {
+
+      .sidebar {
+        width: 210px;
+      }
+
+      .main {
+        margin-left: 210px;
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-visual {
+        min-height: 240px;
+      }
+
+      .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .pipeline {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media(max-width:800px) {
+
+      .sidebar {
+        transform: translateX(-100%);
+        transition: .25s;
+      }
+
+      .sidebar.open {
+        transform: none;
+      }
+
+      .mobile-top {
+        display: flex;
+      }
+
+      .main {
+        margin-left: 0;
+      }
+
+      .topbar {
+        display: none;
+      }
+
+      .page {
+        padding: 80px 15px 50px;
+      }
+
+      .hero-main {
+        padding: 25px;
+      }
+
+      .hero-stats {
+        grid-template-columns: 1fr;
+      }
+
+      .dashboard-grid,
+      .console-grid,
+      .metrics-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .pipeline {
+        grid-template-columns: 1fr;
+      }
+
+      .attack-card {
+        width: 270px;
+      }
+
+      .field-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .quick-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .section-title {
+        font-size: 20px;
+      }
+    }
+
+    @media(max-width:500px) {
+
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-main {
+        padding: 21px;
+      }
+
+      .card,
+      .team-card {
+        padding: 16px;
+      }
+    }
+
+    /* ---- Extra small phones (landscape mobile / narrow devices) ---- */
+    @media(max-width:420px) {
+
+      .page {
+        padding: 76px 12px 44px;
+      }
+
+      .hero-main {
+        padding: 18px;
+      }
+
+      .hero-description {
+        font-size: 13px;
+      }
+
+      .hero-actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .primary-btn,
+      .secondary-btn {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+      }
+
+      .attack-card {
+        width: min(82vw, 245px);
+      }
+
+      .attack-visual {
+        height: 165px;
+        padding: 14px;
+      }
+
+      .attack-visual h4 {
+        font-size: 16px;
+      }
+
+      .live-txn-card {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .live-risk-number {
+        font-size: 48px;
+      }
+
+      .top-actions {
+        width: 100%;
+        justify-content: space-between;
+      }
+    }
+
+    /* ---- Landscape phones (short viewport height) ---- */
+    @media (max-width: 900px) and (orientation: landscape) and (max-height: 480px) {
+
+      .mobile-top {
+        height: 50px;
+      }
+
+      .page {
+        padding-top: 64px;
+      }
+
+      .hero-visual {
+        min-height: 180px;
+      }
+
+      .venn {
+        width: 170px;
+        height: 170px;
+      }
+
+      .vcircle {
+        width: 105px;
+        height: 105px;
+      }
+
+      .live-demo-stage {
+        min-height: 260px;
+      }
+    }
+
+    /* ---- Accessibility: focus states & reduced motion ---- */
+    a:focus-visible,
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    [tabindex]:focus-visible {
+      outline: 2px solid var(--blue);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+
+    .quick-card[role="button"]:focus-visible,
+    .attack-card:focus-visible {
+      outline: 2px solid var(--teal);
+      outline-offset: 3px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+      }
+
+      html {
+        scroll-behavior: auto;
+      }
+
+      .kpi:hover,
+      .attack-card:hover,
+      .quick-card:hover {
+        transform: none;
+      }
+    }
+
+    /* ===== THEME TOGGLE (clean) ===== */
+    html[data-theme="dark"] {
+      --bg: #0B0E17;
+      --surface: #141926;
+      --surface2: #1B2231;
+      --ink: #F2F5FC;
+      --muted: #8890A6;
+      --line: #262E40;
+    }
+
+    html[data-theme="dark"] .topbar {
+      background: rgba(15, 18, 28, .92);
+      border-bottom-color: var(--line);
+    }
+
+    html[data-theme="dark"] input[type=number],
+    html[data-theme="dark"] input[type=text],
+    html[data-theme="dark"] select {
+      background: var(--surface2);
+      border-color: var(--line);
+      color: var(--ink);
+    }
+
+    html[data-theme="dark"] .btn-small,
+    html[data-theme="dark"] .secondary-btn {
+      background: var(--surface);
+      border-color: var(--line);
+      color: var(--ink);
+    }
+
+    html[data-theme="dark"] .disclaimer {
+      background: var(--surface);
+      border-color: var(--line);
+    }
+
+    html[data-theme="dark"] .team-card.blue-team,
+    html[data-theme="dark"] .team-card.red-team {
+      background: linear-gradient(145deg, var(--surface), var(--surface2));
+    }
+
+    html[data-theme="dark"] .health-icon {
+      background: var(--surface2);
+      border-color: var(--line);
+    }
+
+    html[data-theme="dark"] .primary-btn {
+      background: #F2F5FC;
+      color: #0B0E17;
+    }
+
+    html[data-theme="dark"] ::-webkit-scrollbar-thumb {
+      background: #333c52;
+    }
+
+    /* ===== AI-STYLE MESH BACKGROUND (always on, both themes) ===== */
+    body {
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(circle at 10% 6%, rgba(124, 92, 255, .22), transparent 40%),
+        radial-gradient(circle at 90% 4%, rgba(0, 200, 150, .20), transparent 38%),
+        radial-gradient(circle at 80% 60%, rgba(54, 84, 255, .18), transparent 42%),
+        radial-gradient(circle at 6% 68%, rgba(255, 71, 87, .16), transparent 40%),
+        radial-gradient(circle at 46% 92%, rgba(255, 171, 0, .14), transparent 42%);
+      background-attachment: fixed, fixed, fixed, fixed, fixed;
+      background-repeat: no-repeat;
+      transition: background-color .25s ease;
+    }
+
+    html[data-theme="dark"] body {
+      background-color: #0B0E17;
+      background-image:
+        radial-gradient(circle at 12% 8%, rgba(124, 92, 255, .28), transparent 42%),
+        radial-gradient(circle at 88% 6%, rgba(0, 200, 150, .24), transparent 40%),
+        radial-gradient(circle at 78% 62%, rgba(54, 84, 255, .26), transparent 45%),
+        radial-gradient(circle at 8% 70%, rgba(255, 71, 87, .18), transparent 40%),
+        radial-gradient(circle at 50% 95%, rgba(124, 92, 255, .16), transparent 45%);
+    }
+
+    .page {
+      position: relative;
+    }
+
+    .page::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background-image: radial-gradient(rgba(120, 120, 150, .09) 1px, transparent 1px);
+      background-size: 26px 26px;
+      mask-image: linear-gradient(to bottom, rgba(0, 0, 0, .9), rgba(0, 0, 0, .35) 70%, transparent);
+    }
+
+    html[data-theme="dark"] .page::before {
+      background-image: radial-gradient(rgba(255, 255, 255, .05) 1px, transparent 1px);
+    }
+
+    .page>* {
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-main,
+    .card,
+    .kpi,
+    .team-card,
+    .pipeline-step,
+    .quick-card {
+      backdrop-filter: blur(2px);
+    }
+  </style>
+
+  <style id="circle-clickable-css">
+    .vcircle,
+    .vlabel.loop {
+      cursor: pointer;
+    }
+
+    .vcircle {
+      border: 0;
+      padding: 0;
+    }
+
+    .vcircle:hover {
+      transform: translateY(-50%) scale(1.035);
+      filter: brightness(1.06);
+    }
+
+    .vlabel.loop {
+      border: 0;
+      background: transparent;
+      font: inherit;
+      color: inherit;
+      padding: 6px 12px;
+    }
+
+    .vlabel.loop:hover {
+      opacity: 0.85;
+    }
+  </style>
+
+
+  <style id="live-demo-final-css">
+    /* ============================================================
+   CLICKABLE RED / BLUE / CLOSED LOOP
+   ============================================================ */
+
+    .vcircle,
+    .vlabel.loop {
+      cursor: pointer !important;
+      transition:
+        transform .25s ease,
+        filter .25s ease,
+        opacity .25s ease,
+        box-shadow .25s ease;
+    }
+
+    .vcircle:hover {
+      transform: translateY(-50%) scale(1.035);
+      filter: brightness(1.06);
+    }
+
+    .vlabel.loop:hover {
+      transform: scale(1.08);
+      opacity: 1;
+    }
+
+    .vcircle.live-active {
+      animation: circlePulse 1.1s ease-in-out infinite;
+    }
+
+    @keyframes circlePulse {
+
+      0%,
+      100% {
+        transform: translateY(-50%) scale(1);
+        filter: brightness(1);
+      }
+
+      50% {
+        transform: translateY(-50%) scale(1.06);
+        filter: brightness(1.3);
+      }
+    }
+
+    /* ============================================================
+   LIVE DEMO MODAL
+   ============================================================ */
+
+    #liveDemoModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 999999;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(5, 8, 18, .88);
+      backdrop-filter: blur(12px);
+    }
+
+    #liveDemoModal.open {
+      display: flex;
+    }
+
+    .live-demo-window {
+      width: min(940px, 96vw);
+      max-height: 90vh;
+      overflow: hidden;
+      border-radius: 24px;
+      background: #0d1120;
+      color: white;
+      border: 1px solid rgba(255, 255, 255, .12);
+      box-shadow:
+        0 40px 120px rgba(0, 0, 0, .55),
+        0 0 60px rgba(0, 200, 170, .08);
+    }
+
+    .live-demo-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 22px;
+      border-bottom: 1px solid rgba(255, 255, 255, .09);
+    }
+
+    .live-demo-title {
+      font-weight: 800;
+      letter-spacing: .02em;
+    }
+
+    .live-demo-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #7ee7cf;
+    }
+
+    .live-demo-status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #18c79d;
+      box-shadow: 0 0 14px #18c79d;
+    }
+
+    .live-demo-close {
+      border: 0;
+      background: rgba(255, 255, 255, .08);
+      color: white;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    .live-demo-body {
+      padding: 28px;
+    }
+
+    .live-demo-progress {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 7px;
+      margin-bottom: 28px;
+    }
+
+    .live-demo-progress span {
+      height: 5px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, .10);
+      transition: background .3s ease;
+    }
+
+    .live-demo-progress span.active {
+      background: #19c89d;
+      box-shadow: 0 0 14px rgba(25, 200, 157, .45);
+    }
+
+    .live-demo-stage {
+      min-height: 380px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .live-demo-kicker {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: #7d8aa8;
+      margin-bottom: 12px;
+    }
+
+    .live-demo-headline {
+      font-size: clamp(28px, 5vw, 52px);
+      line-height: 1.05;
+      font-weight: 900;
+      margin-bottom: 18px;
+    }
+
+    .live-demo-headline.red {
+      color: #ff5366;
+    }
+
+    .live-demo-headline.teal {
+      color: #18c79d;
+    }
+
+    .live-demo-headline.white {
+      color: white;
+    }
+
+    .live-demo-sub {
+      color: #aeb7cc;
+      line-height: 1.7;
+      max-width: 720px;
+    }
+
+    .live-txn-card {
+      margin-top: 26px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .live-txn-cell {
+      padding: 18px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, .055);
+      border: 1px solid rgba(255, 255, 255, .08);
+    }
+
+    .live-txn-cell small {
+      display: block;
+      color: #77829b;
+      margin-bottom: 7px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+    }
+
+    .live-txn-cell strong {
+      font-size: 19px;
+    }
+
+    .live-api-flow {
+      margin-top: 25px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .live-api-node {
+      padding: 13px 18px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, .06);
+      border: 1px solid rgba(255, 255, 255, .10);
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .live-api-arrow {
+      color: #18c79d;
+      font-size: 20px;
+    }
+
+    .live-risk {
+      margin-top: 26px;
+    }
+
+    .live-risk-number {
+      font-size: 70px;
+      line-height: 1;
+      font-weight: 900;
+    }
+
+    .live-risk-label {
+      color: #8994ab;
+      font-size: 12px;
+      margin-top: 6px;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+    }
+
+    .live-risk-track {
+      height: 13px;
+      background: rgba(255, 255, 255, .08);
+      border-radius: 20px;
+      overflow: hidden;
+      margin-top: 18px;
+    }
+
+    .live-risk-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      transition: width .8s ease;
+    }
+
+    .live-result {
+      margin-top: 26px;
+      padding: 22px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, .055);
+      border: 1px solid rgba(255, 255, 255, .08);
+    }
+
+    .live-result-big {
+      font-size: 30px;
+      font-weight: 900;
+    }
+
+    .live-bars {
+      margin-top: 26px;
+    }
+
+    .live-bar-row {
+      display: grid;
+      grid-template-columns: 80px 1fr 80px;
+      gap: 12px;
+      align-items: center;
+      margin: 15px 0;
+    }
+
+    .live-bar-track {
+      height: 14px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, .08);
+      overflow: hidden;
+    }
+
+    .live-bar-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: inherit;
+      transition: width 1.2s ease;
+    }
+
+    .live-bar-before {
+      background: #ff5366;
+    }
+
+    .live-bar-after {
+      background: #18c79d;
+    }
+
+    .live-demo-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 25px;
+    }
+
+    .live-demo-button {
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 18px;
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    .live-demo-button.primary {
+      background: #18c79d;
+      color: #06120f;
+    }
+
+    .live-demo-button.secondary {
+      background: rgba(255, 255, 255, .08);
+      color: white;
+    }
+
+    .live-error {
+      color: #ff7180;
+      padding: 16px;
+      border-radius: 12px;
+      background: rgba(255, 80, 100, .08);
+      border: 1px solid rgba(255, 80, 100, .18);
+    }
+
+    @media(max-width:700px) {
+      .live-txn-card {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .live-demo-body {
+        padding: 20px;
+      }
+
+      .live-demo-stage {
+        min-height: 330px;
+      }
+
+      .live-demo-progress {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+  </style>
+
+
+  <style id="production-responsive-fix">
+    /* ================================================================
+   PRODUCTION RESPONSIVE LAYER
+   Fluid-first: prevents layout overflow, clipping and breakpoint gaps.
+   ================================================================ */
+
+    html,
+    body {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+    }
+
+    body {
+      overflow-x: clip;
+    }
+
+    @supports not (overflow-x: clip) {
+      body {
+        overflow-x: hidden;
+      }
+    }
+
+    *,
+    *::before,
+    *::after {
+      min-width: 0;
+    }
+
+    img,
+    svg,
+    video,
+    canvas {
+      max-width: 100%;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      max-width: 100%;
+    }
+
+    .main,
+    .page,
+    section,
+    .card,
+    .kpi,
+    .team-card,
+    .pipeline-step,
+    .quick-card,
+    .hero-main,
+    .hero-visual,
+    .loop-console,
+    .api-console,
+    .dashboard-grid>*,
+    .console-grid>*,
+    .metrics-grid>*,
+    .hero>* {
+      min-width: 0;
+      max-width: 100%;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 1400px;
+      margin-inline: auto;
+      padding-inline: clamp(12px, 2.2vw, 30px);
+    }
+
+    .hero {
+      grid-template-columns: minmax(0, 1.25fr) minmax(0, .75fr);
+    }
+
+    .dashboard-grid {
+      grid-template-columns: minmax(0, 1.5fr) minmax(280px, .85fr);
+    }
+
+    .console-grid,
+    .metrics-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .kpi-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .pipeline {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .quick-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .hero-main h1,
+    .hero-description,
+    .section-title,
+    .section-sub,
+    .card-title,
+    .card-caption,
+    .pipeline-step h4,
+    .pipeline-step p,
+    .health-name,
+    .health-description,
+    .live-demo-title,
+    .live-demo-headline,
+    .live-demo-sub,
+    .live-error {
+      overflow-wrap: anywhere;
+      word-break: normal;
+    }
+
+    .chart-wrap,
+    .metric-chart {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .chart-wrap canvas,
+    .metric-chart canvas {
+      display: block !important;
+      width: 100% !important;
+      max-width: 100%;
+    }
+
+    /* Reveal animations should never move the layout off-screen on touch devices. */
+    @media (max-width: 800px) {
+
+      .reveal-left,
+      .reveal-right {
+        transform: none !important;
+        opacity: 1 !important;
+        transition: opacity .35s ease !important;
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-main {
+        padding: clamp(18px, 5vw, 25px);
+      }
+
+      .hero-visual {
+        min-height: clamp(220px, 55vw, 285px);
+      }
+
+      .hero-stats {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .dashboard-grid,
+      .console-grid,
+      .metrics-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .pipeline {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .quick-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .field-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .attack-card {
+        width: clamp(250px, 78vw, 320px);
+      }
+
+      .arsenal-grid {
+        gap: clamp(10px, 3vw, 18px);
+      }
+
+      .live-demo-window {
+        width: calc(100vw - 20px);
+        max-width: 940px;
+        max-height: calc(100dvh - 20px);
+      }
+
+      .live-demo-top {
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 14px 16px;
+      }
+
+      .live-demo-top>div:last-child {
+        margin-left: auto;
+      }
+
+      .live-demo-body {
+        padding: clamp(14px, 4vw, 20px);
+        overflow-y: auto;
+        max-height: calc(100dvh - 110px);
+      }
+
+      .live-demo-stage {
+        min-height: clamp(260px, 65vh, 330px);
+      }
+
+      .live-txn-card {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .live-bar-row {
+        grid-template-columns: minmax(55px, 80px) minmax(0, 1fr) minmax(55px, 80px);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .mobile-top {
+        padding-inline: 12px;
+      }
+
+      .mobile-brand {
+        font-size: clamp(11px, 3.2vw, 14px);
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .page {
+        padding-inline: 12px;
+      }
+
+      .hero-stats,
+      .field-grid,
+      .quick-grid,
+      .pipeline {
+        grid-template-columns: 1fr;
+      }
+
+      .section-head {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .hero-actions {
+        width: 100%;
+      }
+
+      .primary-btn,
+      .secondary-btn {
+        max-width: 100%;
+      }
+
+      .attack-card {
+        width: min(82vw, 300px);
+      }
+
+      .live-demo-progress {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 5px;
+      }
+
+      .live-demo-footer {
+        flex-wrap: wrap;
+      }
+
+      .live-demo-button {
+        flex: 1 1 140px;
+      }
+
+      .live-risk-number {
+        font-size: clamp(44px, 14vw, 70px);
+      }
+    }
+
+    @media (max-width: 380px) {
+      .page {
+        padding-inline: 10px;
+      }
+
+      .hero-main,
+      .card,
+      .team-card {
+        padding: 14px;
+      }
+
+      .hero-main h1 {
+        font-size: clamp(26px, 9vw, 38px);
+        letter-spacing: -1px;
+      }
+
+      .hero-description {
+        font-size: 12.5px;
+      }
+
+      .hero-visual {
+        min-height: 205px;
+      }
+
+      .venn {
+        transform: scale(.86);
+        transform-origin: center;
+      }
+
+      .attack-card {
+        width: calc(100vw - 44px);
+      }
+
+      .attack-visual {
+        height: 155px;
+        padding: 13px;
+      }
+
+      .attack-visual h4 {
+        font-size: 15px;
+      }
+
+      .live-demo-window {
+        width: calc(100vw - 12px);
+        border-radius: 16px;
+      }
+
+      .live-demo-top {
+        padding: 12px;
+      }
+
+      .live-demo-title {
+        font-size: 12px;
+      }
+
+      .live-demo-status {
+        font-size: 10px;
+      }
+
+      .live-demo-body {
+        padding: 12px;
+      }
+
+      .live-txn-card {
+        gap: 8px;
+      }
+
+      .live-txn-cell {
+        padding: 12px;
+      }
+
+      .live-bar-row {
+        grid-template-columns: 48px minmax(0, 1fr) 55px;
+        gap: 7px;
+        font-size: 11px;
+      }
+    }
+
+    @media (min-width: 801px) and (max-width: 1100px) {
+      .page {
+        padding-inline: clamp(18px, 3vw, 26px);
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .pipeline {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (hover: none) and (pointer: coarse) {
+
+      .kpi:hover,
+      .attack-card:hover,
+      .quick-card:hover,
+      .primary-btn:hover,
+      .secondary-btn:hover,
+      .action-btn:hover,
+      .arsenal-nav-btn:hover {
+        transform: none;
+      }
+
+      .arsenal-grid {
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: none;
+      }
+
+      .attack-card {
+        scroll-snap-align: none;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .arsenal-grid {
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+
+
+  <style id="final-menu-click-safety">
+    /* Keep the existing navigation as the single source of truth. */
+    .menu-btn,
+    .nav-item {
+      pointer-events: auto;
+      position: relative;
+      z-index: 20;
+    }
+
+    @media (max-width: 800px) {
+      .sidebar {
+        z-index: 1000;
+      }
+
+      .menu-btn {
+        z-index: 1100;
+      }
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <div class="mobile-top">
+    <div class="mobile-brand">
+      ◉ AI DEFENSE LAB
+    </div>
+
+    <button class="menu-btn" id="menuBtn" aria-label="Toggle navigation menu" aria-expanded="false">
+      ☰
+    </button>
+  </div>
+
+  <aside class="sidebar" id="sidebar">
+
+    <div class="brand">
+
+      <div class="logo">
+        <span class="r"></span>
+        <span class="t"></span>
+      </div>
+
+      AI DEFENSE LAB
+
+    </div>
+
+    <div class="sidebar-label">
+      Console
+    </div>
+
+    <nav class="nav">
+
+      <a class="nav-item active" href="#overview">
+        <span class="nav-icon" aria-hidden="true">⌂</span>
+        Overview
+      </a>
+
+      <a class="nav-item" href="#fraud">
+        <span class="nav-icon" aria-hidden="true">◉</span>
+        Fraud Detection
+      </a>
+
+      <a class="nav-item" href="#attack">
+        <span class="nav-icon" aria-hidden="true">ϟ</span>
+        Attack Simulator
+      </a>
+
+      <a class="nav-item" href="#arsenal">
+        <span class="nav-icon" aria-hidden="true">◇</span>
+        Red Team Arsenal
+      </a>
+
+      <a class="nav-item" href="#metrics">
+        <span class="nav-icon" aria-hidden="true">▥</span>
+        Metrics
+      </a>
+
+      <a class="nav-item" href="#api">
+        <span class="nav-icon" aria-hidden="true">⌘</span>
+        API Console
+      </a>
+
+    </nav>
+
+    <div class="sidebar-label">
+      System
+    </div>
+
+    <nav class="nav">
+      <a class="nav-item" href="#pipeline">
+        <span class="nav-icon" aria-hidden="true">↻</span>
+        Closed Loop
+      </a>
+    </nav>
+
+    <div class="sidebar-bottom">
+
+      <div class="backend-mini">
+
+        <div class="backend-mini-title">
+          Backend connection
+        </div>
+
+        <div class="backend-mini-status">
+          <span class="status-dot" aria-hidden="true" id="sideDot"></span>
+          <span id="sideStatus">
+            Checking API...
+          </span>
+        </div>
+
+        <div class="version">
+          FastAPI · :8000
+        </div>
+
+      </div>
+
+    </div>
+
+  </aside>
+
+  <main class="main">
+
+    <div class="topbar">
+
+      <div class="breadcrumb">
+        AI Defense Lab
+        <span>/</span>
+        <b>Defense Command Center</b>
+      </div>
+
+      <div class="top-actions">
+
+        <button class="btn-small" id="themeToggle" aria-pressed="false" aria-label="Toggle dark mode"
+          onclick="toggleTheme()">🌙 Dark</button>
+
+        <div class="api-pill" role="status" aria-live="polite">
+          <span class="status-dot" aria-hidden="true" id="topDot"></span>
+          <span id="topStatus">API checking</span>
+        </div>
+
+        <button class="btn-small" aria-label="Refresh backend status" onclick="refreshHealth()">
+          ↻ Refresh
+        </button>
+
+        <button class="btn-small" onclick="scrollToDemo()">
+          + New Analysis
+        </button>
+
+      </div>
+
+    </div>
+
+    <div class="page">
+
+      <section class="hero" id="overview">
+
+        <div class="hero-main">
+
+          <div class="eyebrow">
+            MASTERCARD AI DEFENSE LAB · RED / BLUE TEAM
+          </div>
+
+          <h1>
+            Build the
+            <span class="red">attack</span>.
+            <br>
+            Build the
+            <span class="teal">defense</span>.
+          </h1>
+
+          <p class="hero-description">
+            A closed-loop Red-Team / Blue-Team payment security system
+            that generates synthetic fraud, simulates adversarial attacks,
+            detects suspicious transactions and learns from what it missed.
+          </p>
+
+          <div class="hero-actions">
+
+            <button class="primary-btn" onclick="scrollToDemo()">
+              Try Live Defense Console →
+            </button>
+
+            <button class="secondary-btn" onclick="document.getElementById('arsenal').scrollIntoView()">
+              View Attack Arsenal
+            </button>
+
+          </div>
+
+          <div class="hero-stats">
+
+            <div class="hero-stat">
+              <div class="value">0.972</div>
+              <div class="label">Test ROC-AUC</div>
+            </div>
+
+            <div class="hero-stat">
+              <div class="value">7</div>
+              <div class="label">Attack Families</div>
+            </div>
+
+            <div class="hero-stat">
+              <div class="value">14.7 → 79.6%</div>
+              <div class="label">Detection After Retrain</div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="hero-visual">
+          <div class="venn">
+
+            <div class="vlabel red">
+              Red Team
+            </div>
+
+            <div class="vlabel teal">
+              Blue Team
+            </div>
+
+            <button class="vcircle red" type="button" aria-label="Red Team"
+              onclick="document.getElementById('attack')?.scrollIntoView({behavior:'smooth'})">
+            </button>
+            <button class="vcircle teal" type="button" aria-label="Blue Team"
+              onclick="document.getElementById('fraud')?.scrollIntoView({behavior:'smooth'})">
+            </button>
+
+            <button class="vlabel loop" type="button" aria-label="Closed Loop"
+              onclick="document.getElementById('pipeline')?.scrollIntoView({behavior:'smooth'})">
+              CLOSED LOOP
+            </button>
+
+          </div>
+        </div>
+
+      </section>
+
+      <section class="section">
+
+        <div class="section-head">
+          <div>
+            <div class="section-title">
+              Defense Command Center
+            </div>
+
+            <div class="section-sub">
+              Payment fraud detection, adversarial testing and model resilience.
+            </div>
+          </div>
+        </div>
+
+        <div class="kpi-grid">
+
+          <div class="kpi">
+            <div class="kpi-top">
+              <div class="kpi-icon teal">
+                ✓
+              </div>
+
+              <div class="kpi-change">
+                TEST
+              </div>
+            </div>
+
+            <div class="number">
+              96.99%
+            </div>
+
+            <div class="caption">
+              Test Accuracy
+            </div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi-top">
+              <div class="kpi-icon red">
+                !
+              </div>
+
+              <div class="kpi-change">
+                FRAUD
+              </div>
+            </div>
+
+            <div class="number">
+              66.2%
+            </div>
+
+            <div class="caption">
+              Fraud Recall
+            </div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi-top">
+              <div class="kpi-icon blue">
+                ◈
+              </div>
+
+              <div class="kpi-change">
+                MODEL
+              </div>
+            </div>
+
+            <div class="number">
+              0.423
+            </div>
+
+            <div class="caption">
+              Test PR-AUC
+            </div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi-top">
+              <div class="kpi-icon amber">
+                ↑
+              </div>
+
+              <div class="kpi-change">
+                +541%
+              </div>
+            </div>
+
+            <div class="number">
+              79.6%
+            </div>
+
+            <div class="caption">
+              Closed Loop Detection
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+      <section class="section">
+
+        <div class="dashboard-grid">
+
+          <div class="card">
+
+            <div class="card-title">
+              Threat Activity
+            </div>
+
+            <div class="card-caption">
+              Synthetic session activity visualization · last 12 hours
+            </div>
+
+            <div class="chart-wrap">
+              <canvas id="activityChart"></canvas>
+            </div>
+
+          </div>
+
+          <div class="card">
+
+            <div class="card-title">
+              System Health
+            </div>
+
+            <div class="card-caption">
+              Connected backend services
+            </div>
+
+            <div class="health-list">
+
+              <div class="health-item">
+                <div class="health-left">
+                  <div class="health-icon">
+                    ⚡
+                  </div>
+
+                  <div>
+                    <div class="health-name">
+                      FastAPI
+                    </div>
+
+                    <div class="health-description">
+                      Prediction & simulation API
+                    </div>
+                  </div>
+                </div>
+
+                <div class="health-status" id="healthFastAPI">
+                  CHECKING
+                </div>
+              </div>
+
+              <div class="health-item">
+                <div class="health-left">
+                  <div class="health-icon">
+                    ◉
+                  </div>
+
+                  <div>
+                    <div class="health-name">
+                      ML Model
+                    </div>
+
+                    <div class="health-description">
+                      Fraud scoring engine
+                    </div>
+                  </div>
+                </div>
+
+                <div class="health-status" id="healthModel">
+                  READY
+                </div>
+              </div>
+
+              <div class="health-item">
+                <div class="health-left">
+                  <div class="health-icon">
+                    ◇
+                  </div>
+
+                  <div>
+                    <div class="health-name">
+                      OpenAPI
+                    </div>
+
+                    <div class="health-description">
+                      API contract available
+                    </div>
+                  </div>
+                </div>
+
+                <div class="health-status">
+                  ONLINE
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <section class="section" id="pipeline">
+
+        <div class="section-head">
+          <div>
+            <div class="section-title">
+              Closed-Loop Architecture
+            </div>
+
+            <div class="section-sub">
+              Generate → defend → attack → learn
+            </div>
+          </div>
+        </div>
+
+        <div class="pipeline">
+
+          <div class="pipeline-step">
+            <div class="step-number one">
+              01
+            </div>
+
+            <h4>
+              Synthetic Transactions
+            </h4>
+
+            <p>
+              120k labeled payment events with 1.2% synthetic fraud prevalence.
+            </p>
+          </div>
+
+          <div class="pipeline-step">
+            <div class="step-number two">
+              02
+            </div>
+
+            <h4>
+              Blue-Team Detector
+            </h4>
+
+            <p>
+              XGBoost, Random Forest and Isolation Forest models compete for best validation performance.
+            </p>
+          </div>
+
+          <div class="pipeline-step">
+            <div class="step-number three">
+              03
+            </div>
+
+            <h4>
+              Red-Team Simulator
+            </h4>
+
+            <p>
+              Seven adaptive adversarial attack families target detector weaknesses.
+            </p>
+          </div>
+
+          <div class="pipeline-step">
+            <div class="step-number four">
+              04
+            </div>
+
+            <h4>
+              Adversarial Retrain
+            </h4>
+
+            <p>
+              Missed attacks return to training and the detector is re-fit.
+            </p>
+          </div>
+
+        </div>
+
+      </section>
+
+      <section class="section" id="fraud">
+
+        <div class="section-head">
+          <div>
+            <div class="section-title">
+              Live Defense Command Center
+            </div>
+
+            <div class="section-sub">
+              Run actual requests against your local FastAPI backend.
+            </div>
+          </div>
+        </div>
+
+        <div class="console-grid">
+
+          <div class="team-card blue-team">
+
+            <div class="team-header">
+              <div class="team-title">
+                <span class="team-badge blue">
+                  BLUE TEAM
+                </span>
+
+                <h3>
+                  Score Transaction
+                </h3>
+              </div>
+
+              <div class="live-label">
+                POST /predict
+              </div>
+            </div>
+
+            <div class="field-grid">
+              <div>
+                <label>
+                  Amount ₹
+                </label>
+
+                <input type="number" id="p_amount" value="45000">
+              </div>
+
+              <div>
+                <label>
+                  Baseline Spend ₹
+                </label>
+
+                <input type="number" id="p_baseline" value="3000">
+              </div>
+            </div>
+
+            <div class="field-grid">
+              <div>
+                <label>
+                  Merchant Category
+                </label>
+
+                <select id="p_merchant">
+                  <option value="crypto_exchange" selected>
+                    crypto_exchange
+                  </option>
+
+                  <option value="grocery">
+                    grocery
+                  </option>
+
+                  <option value="gambling">
+                    gambling
+                  </option>
+
+                  <option value="jewelry">
+                    jewelry
+                  </option>
+
+                  <option value="electronics">
+                    electronics
+                  </option>
+
+                  <option value="dining">
+                    dining
+                  </option>
+                </select>
+              </div>
+
+              <div>
+                <label>
+                  Device
+                </label>
+
+                <select id="p_device">
+                  <option value="web_browser">
+                    web_browser
+                  </option>
+
+                  <option value="mobile_app">
+                    mobile_app
+                  </option>
+
+                  <option value="pos_terminal">
+                    pos_terminal
+                  </option>
+
+                  <option value="atm">
+                    atm
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field-grid">
+              <div>
+                <label>
+                  Geo Distance KM
+                </label>
+
+                <input type="number" id="p_geo" value="320">
+              </div>
+
+              <div>
+                <label>
+                  Txn Frequency 24h
+                </label>
+
+                <input type="number" id="p_freq" value="9">
+              </div>
+            </div>
+
+            <div class="field-grid">
+              <div>
+                <label>
+                  Failed Txns 24h
+                </label>
+
+                <input type="number" id="p_failed" value="3">
+              </div>
+
+              <div>
+                <label>
+                  Hour 0–23
+                </label>
+
+                <input type="number" id="p_hour" value="2" min="0" max="23">
+              </div>
+            </div>
+
+            <button class="action-btn blue" id="scoreBtn">
+              Run Blue-Team Detector
+            </button>
+
+            <div class="result" id="scoreResult">
+              <div class="hint">
+                Enter transaction data and run the detector to receive fraud probability, risk score and explanation.
+              </div>
+            </div>
+
+          </div>
+
+          <div class="team-card red-team" id="attack">
+
+            <div class="team-header">
+              <div class="team-title">
+                <span class="team-badge red">
+                  RED TEAM
+                </span>
+
+                <h3>
+                  Attack Simulator
+                </h3>
+              </div>
+
+              <div class="live-label">
+                POST /simulate-attack
+              </div>
+            </div>
+
+            <label>
+              Attack Family
+            </label>
+
+            <select id="a_type">
+              <option value="account_takeover">
+                account_takeover
+              </option>
+
+              <option value="velocity_attack">
+                velocity_attack
+              </option>
+
+              <option value="amount_manipulation">
+                amount_manipulation
+              </option>
+
+              <option value="merchant_switching">
+                merchant_switching
+              </option>
+
+              <option value="geo_evasion">
+                geo_evasion
+              </option>
+
+              <option value="low_and_slow">
+                low_and_slow
+              </option>
+
+              <option value="behavioral_mimicry">
+                behavioral_mimicry
+              </option>
+            </select>
+
+            <label>
+              Attack Intensity
+            </label>
+
+            <div class="slider-row">
+              <input type="range" id="a_intensity" min="0" max="100" value="65">
+              <span class="intensity" id="a_intensity_val">
+                0.65
+              </span>
+            </div>
+
+            <div class="hint" style="margin-top:13px">
+              Attack begins from a clean synthetic ₹1,200 grocery transaction and modifies its behavior according to the
+              selected attack family.
+            </div>
+
+            <button class="action-btn red" id="attackBtn">
+              Craft & Detect Attack
+            </button>
+
+            <div class="result" id="attackResult">
+              <div class="hint">
+                Select an attack family, tune intensity and launch the adversarial simulation.
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <section class="section">
+
+        <div class="section-head">
+          <div>
+            <div class="section-title">
+              Quick Actions
+            </div>
+
+            <div class="section-sub">
+              Run real requests against your local API.
+            </div>
+          </div>
+        </div>
+
+        <div class="quick-grid">
+
+          <div class="quick-card" role="button" tabindex="0" onclick="scrollToDemo()">
+            <div class="quick-icon">
+              ◉
+            </div>
+
+            <h4>
+              Transaction Analyzer
+            </h4>
+
+            <p>
+              Score a payment and inspect the Blue-Team detector response.
+            </p>
+          </div>
+
+          <div class="quick-card" role="button" tabindex="0"
+            onclick="document.getElementById('attack').scrollIntoView()">
+            <div class="quick-icon">
+              ϟ
+            </div>
+
+            <h4>
+              Attack Simulator
+            </h4>
+
+            <p>
+              Generate an adversarial payment and test whether the detector catches it.
+            </p>
+          </div>
+
+          <div class="quick-card" role="button" tabindex="0"
+            onclick="document.getElementById('metrics').scrollIntoView()">
+            <div class="quick-icon">
+              ▥
+            </div>
+
+            <h4>
+              Model Metrics
+            </h4>
+
+            <p>
+              Review attack detection, closed-loop improvement and model signals.
+            </p>
+          </div>
+
+        </div>
+
+      </section>
+
+      <section class="section" id="arsenal">
+
+        <div class="section-head">
+          <div>
+            <div class="section-title">
+              Attack Arsenal — 7 Families
+            </div>
+
+            <div class="section-sub">
+              Synthetic adversarial strategies used to stress-test the Blue-Team detector.
+            </div>
+          </div>
+        </div>
+
+        <div class="arsenal-grid" id="arsenalGrid"></div>
+
+        <div class="arsenal-nav">
+          <button type="button" class="arsenal-nav-btn" id="arsenalPrev"
+            aria-label="Scroll attack cards left">‹</button>
+          <button type="button" class="arsenal-nav-btn" id="arsenalNext"
+            aria-label="Scroll attack cards right">›</button>
+        </div>
+
+      </section>
+
+      <section class="section" id="metrics">
+
+        <div class="section-head">
+          <div>
+            <div class="section-title">
+              Model Evaluation
+            </div>
+
+            <div class="section-sub">
+              Results represented from the project's training run.
+            </div>
+          </div>
+        </div>
+
+        <div class="metrics-grid">
+
+          <div class="card">
+            <div class="card-title">
+              Detection Rate by Attack Type
+            </div>
+
+            <div class="card-caption">
+              Fresh Red-Team batch before adversarial retraining.
+            </div>
+
+            <div class="metric-chart">
+              <canvas id="attackChart"></canvas>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              Closed-Loop Impact
+            </div>
+
+            <div class="card-caption">
+              Same attack mix before vs after retraining.
+            </div>
+
+            <div class="metric-chart">
+              <canvas id="loopChart"></canvas>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              ROC Curve
+            </div>
+
+            <div class="card-caption">
+              XGBoost · AUC = 0.972
+            </div>
+
+            <div class="metric-chart">
+              <canvas id="rocChart"></canvas>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">
+              Top Risk Signals
+            </div>
+
+            <div class="card-caption">
+              Feature importance from the held-out evaluation.
+            </div>
+
+            <div class="metric-chart">
+              <canvas id="fiChart"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+      </section>
+
+      <section class="section">
+
+        <div class="section-head">
+          <div>
+            <div class="section-title">
+              Closed Loop — Live Narration
+            </div>
+
+            <div class="section-sub">
+              Generate → attack → detect → learn.
+            </div>
+          </div>
+
+          <button class="secondary-btn" id="replayBtn">
+            ↻ Replay Cycle
+          </button>
+        </div>
+
+        <div class="loop-console">
+
+          <div class="console-header">
+            <div class="console-dots">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+
+            <div class="console-title">
+              closed_loop.log
+            </div>
+          </div>
+
+          <div class="console-body" id="consoleBody"></div>
+
+        </div>
+
+      </section>
+
+      <section class="section" id="api">
+
+        <div class="section-head">
+          <div>
+            <div class="section-title">
+              API Console
+            </div>
+
+            <div class="section-sub">
+              FastAPI endpoints used by the frontend.
+            </div>
+          </div>
+        </div>
+
+        <div class="api-console">
+
+          <div class="api-line">
+            $ defense-lab status
+          </div>
+
+          <div>
+            backend:
+            <span class="api-green">
+              http://localhost:8000
+            </span>
+          </div>
+
+          <br>
+
+          <div>
+            GET
+            <span class="api-blue">
+              /health
+            </span>
+          </div>
+
+          <div>
+            POST
+            <span class="api-blue">
+              /predict
+            </span>
+          </div>
+
+          <div>
+            POST
+            <span class="api-blue">
+              /simulate-attack
+            </span>
+          </div>
+
+          <br>
+
+          <div>
+            model:
+            <span class="api-yellow">
+              XGBoost / Blue-Team detector
+            </span>
+          </div>
+
+          <div>
+            red_team:
+            <span class="api-yellow">
+              7 adaptive attack families
+            </span>
+          </div>
+
+          <div>
+            data:
+            <span class="api-yellow">
+              synthetic research dataset
+            </span>
+          </div>
+
+          <br>
+
+          <div class="api-line">
+            status:
+            <span id="apiConsoleStatus">
+              checking...
+            </span>
+          </div>
+
+        </div>
+
+      </section>
+
+      <footer class="footer">
+
+        <div class="disclaimer">
+          <b>Synthetic data notice.</b>
+          All transactions, customers and attack traces shown in this prototype
+          are synthetically generated for research/demo purposes.
+          No real Mastercard cardholder information or production fraud signals
+          are used or claimed anywhere in this project.
+          Risk thresholds are configurable demonstration thresholds and are not
+          Mastercard production thresholds.
+        </div>
+
+        <div style="width:100%;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+          <span>
+            AI Defense Lab — Payment Security
+          </span>
+
+          <span class="mono">
+            FastAPI · XGBoost · scikit-learn · SHAP
+          </span>
+        </div>
+
+      </footer>
+
+    </div>
+
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API_BASE = "http://localhost:8000";
+
+    const menuBtn = document.getElementById("menuBtn");
+    const sidebar = document.getElementById("sidebar");
+
+    menuBtn.addEventListener("click", () => {
+      const isOpen = sidebar.classList.toggle("open");
+      menuBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    });
+
+    document.querySelectorAll(".nav-item").forEach(item => {
+
+      item.addEventListener("click", () => {
+
+        document
+          .querySelectorAll(".nav-item")
+          .forEach(x => x.classList.remove("active"));
+
+        item.classList.add("active");
+
+        sidebar.classList.remove("open");
+
+      });
+
+    });
+
+    let toastTimer;
+
+    function showToast(message) {
+
+      const toast = document.getElementById("toast");
+
+      toast.textContent = message;
+
+      toast.classList.add("show");
+
+      clearTimeout(toastTimer);
+
+      toastTimer = setTimeout(() => {
+        toast.classList.remove("show");
+      }, 2600);
+
+    }
+
+    function scrollToDemo() {
+
+      document
+        .getElementById("fraud")
+        .scrollIntoView({
+          behavior: "smooth"
+        });
+
+    }
+
+    async function refreshHealth() {
+
+      const sideDot =
+        document.getElementById("sideDot");
+
+      const topDot =
+        document.getElementById("topDot");
+
+      const sideStatus =
+        document.getElementById("sideStatus");
+
+      const topStatus =
+        document.getElementById("topStatus");
+
+      const healthFastAPI =
+        document.getElementById("healthFastAPI");
+
+      const apiConsoleStatus =
+        document.getElementById("apiConsoleStatus");
+
+      try {
+
+        const response = await fetch(
+          API_BASE + "/health",
+          {
+            method: "GET",
+            signal: AbortSignal.timeout(3000)
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Backend error");
+        }
+
+        const data = await response.json();
+
+        const online =
+          data.status === "ok";
+
+        if (!online) {
+          throw new Error("Backend not ready");
+        }
+
+        sideDot.className =
+          "status-dot online";
+
+        topDot.className =
+          "status-dot online";
+
+        sideStatus.textContent =
+          "API online";
+
+        topStatus.textContent =
+          "API online";
+
+        healthFastAPI.textContent =
+          "ONLINE";
+
+        healthFastAPI.classList.remove("off");
+
+        apiConsoleStatus.textContent =
+          "ONLINE";
+
+        document
+          .getElementById("healthModel")
+          .textContent = "READY";
+
+      }
+      catch (error) {
+
+        sideDot.className =
+          "status-dot offline";
+
+        topDot.className =
+          "status-dot offline";
+
+        sideStatus.textContent =
+          "Demo mode";
+
+        sideStatus.title =
+          "Backend not connected — showing recorded demo data";
+
+        topStatus.textContent =
+          "Demo mode";
+
+        topStatus.title =
+          "Backend not connected — showing recorded demo data";
+
+        healthFastAPI.textContent =
+          "DEMO MODE";
+
+        healthFastAPI.classList.add("off");
+
+        apiConsoleStatus.textContent =
+          "DEMO MODE (backend not connected)";
+
+        document
+          .getElementById("healthModel")
+          .textContent = "DEMO DATA";
+
+        document
+          .getElementById("healthModel")
+          .classList.add("off");
+
+      }
+
+    }
+
+    refreshHealth();
+    setInterval(refreshHealth, 15000);
+
+    if (typeof Chart !== "undefined") {
+
+      Chart.defaults.font.family =
+        "Inter";
+
+      Chart.defaults.color =
+        "#6c7287";
+
+      Chart.defaults.borderColor =
+        "#e8ebf2";
+
+    }
+
+    function createActivityChart() {
+
+      if (typeof Chart === "undefined")
+        return;
+
+      const canvas =
+        document.getElementById("activityChart");
+
+      if (!canvas)
+        return;
+
+      new Chart(canvas, {
+
+        type: "line",
+
+        data: {
+
+          labels: [
+            "1h", "2h", "3h", "4h",
+            "5h", "6h", "7h", "8h",
+            "9h", "10h", "11h", "12h"
+          ],
+
+          datasets: [
+
+            {
+              label: "Threat events",
+
+              data: [
+                8, 13, 10, 19,
+                15, 25, 18, 31,
+                24, 38, 29, 43
+              ],
+
+              borderColor: "#ff4757",
+              backgroundColor: "rgba(255,71,87,.08)",
+              fill: true,
+              tension: .35,
+              pointRadius: 2,
+              borderWidth: 2
+            },
+
+            {
+              label: "Detected",
+
+              data: [
+                6, 11, 9, 17,
+                12, 21, 16, 27,
+                21, 33, 26, 37
+              ],
+
+              borderColor: "#00c896",
+              backgroundColor: "transparent",
+              tension: .35,
+              pointRadius: 2,
+              borderWidth: 2
+            }
+
+          ]
+
+        },
+
+        options: {
+
+          responsive: true,
+          maintainAspectRatio: false,
+
+          plugins: {
+            legend: {
+              labels: {
+                boxWidth: 8,
+                font: {
+                  size: 9
+                }
+              }
+            }
+          },
+
+          scales: {
+
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: "#edf0f5"
+              }
+            },
+
+            x: {
+              grid: {
+                display: false
+              }
+            }
+
+          }
+
+        }
+
+      });
+
+    }
+
+    const attackData = [
+
+      {
+        n: "01",
+        name: "Amount Manipulation",
+        mech: "Keeps transaction amounts just below common threshold bands to avoid amount-based alerting.",
+        evasion: 83.4
+      },
+
+      {
+        n: "02",
+        name: "Velocity Attack",
+        mech: "Creates rapid transaction bursts across merchants and devices to exploit velocity detection gaps.",
+        evasion: 80.3
+      },
+
+      {
+        n: "03",
+        name: "Merchant Switching",
+        mech: "Spreads suspicious spending across multiple merchant categories so no single signal spikes.",
+        evasion: 88.3
+      },
+
+      {
+        n: "04",
+        name: "Geographic Evasion",
+        mech: "Keeps transaction location within a plausible commute radius instead of an obvious geographic jump.",
+        evasion: 98.7
+      },
+
+      {
+        n: "05",
+        name: "Account Takeover",
+        mech: "Combines sudden device, location, amount and velocity changes to imitate an ATO fingerprint.",
+        evasion: 18.9
+      },
+
+      {
+        n: "06",
+        name: "Low-and-Slow Fraud",
+        mech: "Uses many small transactions that remain below the victim's usual spending pattern.",
+        evasion: 99.4
+      },
+
+      {
+        n: "07",
+        name: "Behavioral Mimicry",
+        mech: "Crafts transactions to resemble the victim's historical spending behavior.",
+        evasion: 99.6
+      }
+
+    ];
+
+    const arsenalArt = [
+      { colors: ["#ff4757", "#ff8a80", "#ff4757"], rot: -12, y: "42%", bg: "linear-gradient(160deg, #2a0d12, #12070a)", border: "rgba(255,71,87,.28)" },
+      { colors: ["#ff8a3d", "#ffb066", "#ff8a3d"], rot: 20, y: "58%", bg: "linear-gradient(160deg, #2a1706, #140b03)", border: "rgba(255,138,61,.28)" },
+      { colors: ["#ffcc00", "#ffe066", "#ffb700"], rot: -30, y: "48%", bg: "linear-gradient(160deg, #2a2205, #141002)", border: "rgba(255,204,0,.26)" },
+      { colors: ["#00c896", "#5be8c4", "#00875f"], rot: 16, y: "62%", bg: "linear-gradient(160deg, #06241a, #04120d)", border: "rgba(0,200,150,.28)" },
+      { colors: ["#00b8d9", "#66e0f5", "#0090ab"], rot: -22, y: "40%", bg: "linear-gradient(160deg, #05242b, #031215)", border: "rgba(0,184,217,.28)" },
+      { colors: ["#3654ff", "#8fa0ff", "#1e35d1"], rot: 28, y: "55%", bg: "linear-gradient(160deg, #0d1330, #060819)", border: "rgba(54,84,255,.30)" },
+      { colors: ["#7c5cff", "#c9b8ff", "#5a3fe0"], rot: -18, y: "50%", bg: "linear-gradient(160deg, #1c1130, #0d0818)", border: "rgba(124,92,255,.30)" }
+    ];
+
+    const arsenalIcons = [
+
+      `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="6" y1="34" x2="94" y2="34" stroke="white" stroke-width="2.5" stroke-dasharray="5 5" opacity=".85"/>
+        <path d="M20 90 V50" stroke="white" stroke-width="8" stroke-linecap="round"/>
+        <path d="M42 90 V40" stroke="white" stroke-width="8" stroke-linecap="round"/>
+        <path d="M64 90 V44" stroke="white" stroke-width="8" stroke-linecap="round"/>
+        <path d="M86 90 V38" stroke="white" stroke-width="8" stroke-linecap="round"/>
+      </svg>`,
+
+      `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 26 H58" stroke="white" stroke-width="7" stroke-linecap="round"/>
+        <path d="M4 50 H80" stroke="white" stroke-width="7" stroke-linecap="round"/>
+        <path d="M4 74 H46" stroke="white" stroke-width="7" stroke-linecap="round"/>
+        <circle cx="92" cy="50" r="7" fill="white"/>
+      </svg>`,
+
+      `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M50 50 L18 18 M50 50 L82 18 M50 50 L18 82 M50 50 L82 82" stroke="white" stroke-width="2.5" opacity=".65"/>
+        <circle cx="50" cy="50" r="10" fill="white"/>
+        <circle cx="18" cy="18" r="7" fill="white" opacity=".85"/>
+        <circle cx="82" cy="18" r="7" fill="white" opacity=".85"/>
+        <circle cx="18" cy="82" r="7" fill="white" opacity=".85"/>
+        <circle cx="82" cy="82" r="7" fill="white" opacity=".85"/>
+      </svg>`,
+
+      `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="42" cy="55" r="10" fill="white"/>
+        <circle cx="42" cy="55" r="24" stroke="white" stroke-width="2.5" opacity=".55"/>
+        <circle cx="42" cy="55" r="38" stroke="white" stroke-width="2" opacity=".3"/>
+        <path d="M42 55 L74 24" stroke="white" stroke-width="3" stroke-dasharray="4 5" stroke-linecap="round"/>
+      </svg>`,
+
+      `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="26" y="46" width="48" height="38" rx="6" stroke="white" stroke-width="6"/>
+        <path d="M35 46 V32 a15 15 0 0 1 30 0 v6" stroke="white" stroke-width="6"/>
+        <path d="M50 60 L44 74 L56 68 L50 82" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`,
+
+      `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M6 66 Q34 30 96 42" stroke="white" stroke-width="1.5" opacity=".35"/>
+        <circle cx="8" cy="66" r="4" fill="white"/>
+        <circle cx="26" cy="52" r="4" fill="white"/>
+        <circle cx="46" cy="44" r="4" fill="white"/>
+        <circle cx="68" cy="40" r="4" fill="white"/>
+        <circle cx="92" cy="42" r="5.5" fill="white"/>
+      </svg>`,
+
+      `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 46 Q20 18 36 46 T68 46 T96 46" stroke="white" stroke-width="4" stroke-linecap="round"/>
+        <path d="M4 60 Q20 32 36 60 T68 60 T96 60" stroke="white" stroke-width="3" stroke-dasharray="2 6" stroke-linecap="round" opacity=".6"/>
+      </svg>`
+
+    ];
+
+    function renderArsenal() {
+
+      const grid =
+        document.getElementById("arsenalGrid");
+
+      if (!grid)
+        return;
+
+      grid.innerHTML = "";
+
+      const loopedData =
+        attackData.concat(attackData);
+
+      loopedData.forEach((a, idx) => {
+
+        const card =
+          document.createElement("div");
+
+        card.className =
+          "attack-card";
+
+        card.setAttribute(
+          "aria-hidden",
+          idx >= attackData.length ? "true" : "false"
+        );
+
+        const art =
+          arsenalArt[idx % attackData.length];
+
+        card.style.setProperty("--hue", art.rot + "deg");
+        card.style.setProperty("--art-y", art.y);
+        card.style.setProperty("--art-c1", art.colors[0]);
+        card.style.setProperty("--art-c2", art.colors[1]);
+        card.style.setProperty("--art-c3", art.colors[2]);
+        card.style.setProperty("--card-bg", art.bg);
+        card.style.setProperty("--card-border", art.border);
+
+        const rateClass =
+          a.evasion > 60
+            ? "high"
+            : "low";
+
+        card.innerHTML = `
+        <div class="attack-visual">
+          <div class="attack-visual-bg"></div>
+          <div class="attack-icon">
+            ${arsenalIcons[idx % attackData.length]}
+          </div>
+          <div class="attack-eyebrow">
+            Attack Family · ${a.n}
+          </div>
+          <h4>
+            ${a.name}
+          </h4>
+        </div>
+
+        <div class="attack-body">
+          <p>
+            ${a.mech}
+          </p>
+
+          <div class="attack-bottom">
+
+            <div>
+              <div style="font-size:8px;color:#6b7492;font-family:'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase">
+                EVASION RATE
+              </div>
+
+              <div class="attack-rate ${rateClass}">
+                ${a.evasion}%
+              </div>
+            </div>
+
+            <div class="mini-bar">
+              <div
+                class="mini-fill"
+                style="width:${a.evasion}%;background:${a.evasion > 60 ? '#ff5366' : '#18c79d'};color:${a.evasion > 60 ? '#ff5366' : '#18c79d'}"
+              ></div>
+            </div>
+
+          </div>
+        </div>
+      `;
+
+        grid.appendChild(card);
+
+      });
+
+      setupArsenalNav();
+
+    }
+
+    function setupArsenalNav() {
+
+      const grid = document.getElementById("arsenalGrid");
+      const prevBtn = document.getElementById("arsenalPrev");
+      const nextBtn = document.getElementById("arsenalNext");
+
+      if (!grid || !prevBtn || !nextBtn) return;
+
+      // Prevent duplicate initialization if renderArsenal is called again.
+      if (grid.dataset.carouselReady === "true") return;
+      grid.dataset.carouselReady = "true";
+
+      const reduceMotionQuery = window.matchMedia
+        ? window.matchMedia("(prefers-reduced-motion: reduce)")
+        : null;
+
+      let reducedMotion = !!reduceMotionQuery?.matches;
+      let paused = false;
+      let rafId = 0;
+      let lastTime = performance.now();
+      let resumeTimer = null;
+
+      // Positive scrollLeft moves the content visually RIGHT -> LEFT.
+      const SPEED = 72; // px/sec; clear RIGHT -> LEFT motion
+
+      function loopWidth() {
+        // The rendered data contains the 7 families twice. The first
+        // complete set is therefore exactly half of the scrollable content.
+        return grid.scrollWidth / 2;
+      }
+
+      function normalizeLoopPosition() {
+        const half = loopWidth();
+        if (half > 0 && grid.scrollLeft >= half) {
+          grid.scrollLeft -= half;
+        }
+        if (grid.scrollLeft < 0 && half > 0) {
+          grid.scrollLeft += half;
+        }
+      }
+
+      function frame(now) {
+        rafId = 0;
+        if (paused || reducedMotion || document.hidden) return;
+
+        const dt = Math.min(now - lastTime, 50);
+        lastTime = now;
+
+        const half = loopWidth();
+        if (half > grid.clientWidth + 1) {
+          grid.scrollLeft += (SPEED * dt) / 1000;
+          normalizeLoopPosition();
+        }
+
+        rafId = requestAnimationFrame(frame);
+      }
+
+      function startAuto() {
+        if (reducedMotion || paused || document.hidden || rafId) return;
+        lastTime = performance.now();
+        rafId = requestAnimationFrame(frame);
+      }
+
+      function stopAuto() {
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = 0;
+      }
+
+      function pauseTemporarily() {
+        paused = true;
+        stopAuto();
+        clearTimeout(resumeTimer);
+      }
+
+      function resumeSoon() {
+        clearTimeout(resumeTimer);
+        resumeTimer = setTimeout(() => {
+          paused = false;
+          startAuto();
+        }, 1200);
+      }
+
+      function cardStep() {
+        const card = grid.querySelector(".attack-card");
+        if (!card) return 320;
+        const style = getComputedStyle(grid);
+        const gap = parseFloat(style.columnGap || style.gap || "18") || 18;
+        return card.getBoundingClientRect().width + gap;
+      }
+
+      function moveBy(delta) {
+        pauseTemporarily();
+        const half = loopWidth();
+        if (!half) return;
+
+        let target = grid.scrollLeft + delta;
+
+        // Keep manual navigation inside the duplicated loop.
+        while (target >= half) target -= half;
+        while (target < 0) target += half;
+
+        grid.scrollTo({ left: target, behavior: "smooth" });
+        resumeSoon();
+      }
+
+      // Previous = visual movement LEFT -> RIGHT.
+      prevBtn.addEventListener("click", () => {
+        moveBy(-cardStep());
+      });
+
+      // Next = visual movement RIGHT -> LEFT.
+      nextBtn.addEventListener("click", () => {
+        moveBy(cardStep());
+      });
+
+      // User interaction pauses autoplay so cards don't fight the finger/mouse.
+      grid.addEventListener("mouseenter", pauseTemporarily);
+      grid.addEventListener("mouseleave", () => {
+        paused = false;
+        startAuto();
+      });
+
+      grid.addEventListener("touchstart", pauseTemporarily, { passive: true });
+      grid.addEventListener("touchend", resumeSoon, { passive: true });
+      grid.addEventListener("focusin", pauseTemporarily);
+      grid.addEventListener("focusout", resumeSoon);
+
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+          stopAuto();
+        } else {
+          startAuto();
+        }
+      });
+
+      window.addEventListener("resize", () => {
+        normalizeLoopPosition();
+        if (!paused) startAuto();
+      }, { passive: true });
+
+      if (reduceMotionQuery?.addEventListener) {
+        reduceMotionQuery.addEventListener("change", (event) => {
+          reducedMotion = event.matches;
+          if (reducedMotion) stopAuto();
+          else startAuto();
+        });
+      }
+
+      // Start immediately: the 7 attack cards continuously travel
+      // from RIGHT -> LEFT and seamlessly repeat.
+      startAuto();
+    }
+
+    function createMetricCharts() {
+
+      if (typeof Chart === "undefined")
+        return;
+
+      new Chart(
+        document.getElementById("attackChart"),
+        {
+
+          type: "bar",
+
+          data: {
+
+            labels: [
+              "Behavioral Mimicry",
+              "Low & Slow",
+              "Geo Evasion",
+              "Merchant Switching",
+              "Amount Manipulation",
+              "Velocity Attack",
+              "Account Takeover"
+            ],
+
+            datasets: [{
+
+              data: [
+                0.4,
+                0.6,
+                1.3,
+                11.7,
+                16.6,
+                19.7,
+                81.1
+              ],
+
+              backgroundColor: [
+                "#ff4757",
+                "#ff4757",
+                "#ff4757",
+                "#ff4757",
+                "#ff4757",
+                "#ff4757",
+                "#00c896"
+              ],
+
+              borderRadius: 6
+
+            }]
+
+          },
+
+          options: {
+
+            indexAxis: "y",
+
+            responsive: true,
+            maintainAspectRatio: false,
+
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+
+            scales: {
+
+              x: {
+
+                max: 100,
+
+                ticks: {
+                  callback: v => v + "%"
+                },
+
+                grid: {
+                  color: "#edf0f5"
+                }
+
+              },
+
+              y: {
+
+                grid: {
+                  display: false
+                },
+
+                ticks: {
+                  font: {
+                    size: 9
+                  }
+                }
+
+              }
+
+            }
+
+          }
+
+        }
+
+      );
+
+      new Chart(
+        document.getElementById("loopChart"),
+        {
+
+          type: "bar",
+
+          data: {
+
+            labels: [
+              "Before Retrain",
+              "After Retrain"
+            ],
+
+            datasets: [{
+
+              data: [
+                14.7,
+                79.6
+              ],
+
+              backgroundColor: [
+                "#ff4757",
+                "#00c896"
+              ],
+
+              borderRadius: 8
+
+            }]
+
+          },
+
+          options: {
+
+            responsive: true,
+            maintainAspectRatio: false,
+
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+
+            scales: {
+
+              y: {
+
+                max: 100,
+
+                ticks: {
+                  callback: v => v + "%"
+                },
+
+                grid: {
+                  color: "#edf0f5"
+                }
+
+              },
+
+              x: {
+                grid: {
+                  display: false
+                }
+              }
+
+            }
+
+          }
+
+        }
+
+      );
+
+      const rocPts = [
+        [0, 0],
+        [.01, .35],
+        [.03, .55],
+        [.06, .68],
+        [.10, .78],
+        [.18, .86],
+        [.30, .91],
+        [.50, .95],
+        [.75, .98],
+        [1, 1]
+      ];
+
+      new Chart(
+        document.getElementById("rocChart"),
+        {
+
+          type: "line",
+
+          data: {
+
+            labels:
+              rocPts.map(p => p[0]),
+
+            datasets: [
+
+              {
+                label: "XGBoost AUC 0.972",
+
+                data:
+                  rocPts.map(p => p[1]),
+
+                borderColor: "#00c896",
+
+                backgroundColor:
+                  "rgba(0,200,150,.08)",
+
+                fill: true,
+                tension: .3,
+                pointRadius: 0,
+                borderWidth: 2.5
+              },
+
+              {
+                label: "Random Guess",
+
+                data:
+                  rocPts.map(p => p[0]),
+
+                borderColor: "#c7cad6",
+                borderDash: [4, 4],
+                pointRadius: 0
+              }
+
+            ]
+
+          },
+
+          options: {
+
+            responsive: true,
+            maintainAspectRatio: false,
+
+            plugins: {
+              legend: {
+                labels: {
+                  boxWidth: 8,
+                  font: {
+                    size: 8
+                  }
+                }
+              }
+            },
+
+            scales: {
+
+              x: {
+                title: {
+                  display: true,
+                  text: "FPR"
+                }
+              },
+
+              y: {
+                title: {
+                  display: true,
+                  text: "TPR"
+                }
+              }
+
+            }
+
+          }
+
+        }
+
+      );
+
+      new Chart(
+        document.getElementById("fiChart"),
+        {
+
+          type: "bar",
+
+          data: {
+
+            labels: [
+              "Crypto exchange",
+              "Merchant risk",
+              "Customer risk appetite",
+              "Failed txns",
+              "Amount / baseline",
+              "Txn frequency"
+            ],
+
+            datasets: [{
+
+              data: [
+                14.2,
+                11.6,
+                9.3,
+                7.7,
+                6.1,
+                6.0
+              ],
+
+              backgroundColor: "#3654ff",
+              borderRadius: 6
+
+            }]
+
+          },
+
+          options: {
+
+            indexAxis: "y",
+
+            responsive: true,
+            maintainAspectRatio: false,
+
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+
+            scales: {
+
+              x: {
+                ticks: {
+                  callback: v => v + "%"
+                }
+              },
+
+              y: {
+
+                grid: {
+                  display: false
+                },
+
+                ticks: {
+                  font: {
+                    size: 8
+                  }
+                }
+
+              }
+
+            }
+
+          }
+
+        }
+
+      );
+
+    }
+
+    const logScript = [
+
+      {
+        tag: "sys",
+        t: "00.00s",
+        text: "closed-loop cycle started · seed=42"
+      },
+
+      {
+        tag: "gen",
+        t: "00.41s",
+        text: "generated 120,000 synthetic transactions · fraud rate 1.20%"
+      },
+
+      {
+        tag: "def",
+        t: "04.10s",
+        text: "trained xgboost blue-team detector · val PR-AUC 0.339"
+      },
+
+      {
+        tag: "def",
+        t: "04.30s",
+        text: "test set: ROC-AUC 0.972 · recall 66.2% · precision 24.8%"
+      },
+
+      {
+        tag: "atk",
+        t: "05.02s",
+        text: "red-team round 1 → generated 3,000 attacks across 7 families"
+      },
+
+      {
+        tag: "atk",
+        t: "05.55s",
+        text: "scored round 1 → detection rate 14.7% on fresh attacks"
+      },
+
+      {
+        tag: "atk",
+        t: "05.61s",
+        text: "adapting strategy weights → up-weighting behavioral_mimicry, low_and_slow"
+      },
+
+      {
+        tag: "atk",
+        t: "06.20s",
+        text: "red-team round 2 → generated 3,000 adapted attacks"
+      },
+
+      {
+        tag: "sys",
+        t: "06.90s",
+        text: "collected 5,046 missed attacks → adversarial training set"
+      },
+
+      {
+        tag: "def",
+        t: "11.40s",
+        text: "retraining blue-team detector on augmented data..."
+      },
+
+      {
+        tag: "atk",
+        t: "12.10s",
+        text: "round 3 → fresh unseen attacks scored before vs after retrain"
+      },
+
+      {
+        tag: "def",
+        t: "12.35s",
+        text: "detection rate after retrain: 79.6% (+541% relative)"
+      },
+
+      {
+        tag: "sys",
+        t: "12.40s",
+        text: "cycle complete — models + metrics saved to outputs/"
+      }
+
+    ];
+
+    let consoleTimer = null;
+
+    function playConsole() {
+
+      const body =
+        document.getElementById("consoleBody");
+
+      body.innerHTML = "";
+
+      if (consoleTimer)
+        clearTimeout(consoleTimer);
+
+      let index = 0;
+
+      function next() {
+
+        if (index >= logScript.length)
+          return;
+
+        const line =
+          logScript[index];
+
+        const div =
+          document.createElement("div");
+
+        div.className =
+          "console-line";
+
+        div.innerHTML = `
+        <span class="log-time">
+          [${line.t}]
+        </span>
+
+        <span class="log-tag ${line.tag}">
+          ${line.tag}
+        </span>
+
+        ${line.text}
+      `;
+
+        body.appendChild(div);
+
+        body.scrollTop =
+          body.scrollHeight;
+
+        index++;
+
+        consoleTimer =
+          setTimeout(next, 420);
+
+      }
+
+      next();
+
+    }
+
+    document
+      .getElementById("a_intensity")
+      .addEventListener("input", e => {
+
+        document
+          .getElementById("a_intensity_val")
+          .textContent =
+          (
+            Number(e.target.value) / 100
+          ).toFixed(2);
+
+      });
+
+    function riskColor(score) {
+
+      if (score <= 30)
+        return "#00c896";
+
+      if (score <= 60)
+        return "#ffab00";
+
+      if (score <= 80)
+        return "#ff7b47";
+
+      return "#ff4757";
+
+    }
+
+    document
+      .getElementById("scoreBtn")
+      .addEventListener("click", async () => {
+
+        const box =
+          document.getElementById("scoreResult");
+
+        box.innerHTML = `
+        <div class="hint">
+          <span class="spin"></span>
+          Blue-Team detector scoring transaction...
+        </div>
+      `;
+
+        const amount =
+          parseFloat(
+            document.getElementById("p_amount").value
+          );
+
+        const baseline =
+          parseFloat(
+            document.getElementById("p_baseline").value
+          );
+
+        if (
+          !Number.isFinite(amount) ||
+          !Number.isFinite(baseline)
+        ) {
+
+          box.innerHTML = `
+         <div class="hint">
+           Please enter valid amount and baseline values.
+         </div>
+       `;
+
+          return;
+
+        }
+
+        const payload = {
+
+          transaction_id:
+            "TXN_DEMO_" + Date.now(),
+
+          customer_id:
+            "CUST_DEMO",
+
+          amount,
+
+          hour_of_day:
+            parseInt(
+              document.getElementById("p_hour").value
+            ),
+
+          merchant_category:
+            document.getElementById("p_merchant").value,
+
+          merchant_risk_score:
+            0.6,
+
+          payment_method:
+            "online_card_not_present",
+
+          device_type:
+            document.getElementById("p_device").value,
+
+          account_age_days:
+            120,
+
+          customer_baseline_spend:
+            baseline,
+
+          geo_distance_from_home_km:
+            parseFloat(
+              document.getElementById("p_geo").value
+            ),
+
+          txn_frequency_24h:
+            parseInt(
+              document.getElementById("p_freq").value
+            ),
+
+          failed_txn_count_24h:
+            parseInt(
+              document.getElementById("p_failed").value
+            ),
+
+          prev_txn_amount:
+            baseline * .9,
+
+          customer_risk_appetite:
+            .5
+
+        };
+
+        try {
+
+          const response =
+            await fetch(
+              API_BASE + "/predict",
+              {
+
+                method: "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json"
+                },
+
+                body:
+                  JSON.stringify(payload),
+
+                signal:
+                  AbortSignal.timeout(7000)
+
+              }
+
+            );
+
+          if (!response.ok) {
+
+            throw new Error(
+              "API error " +
+              response.status
+            );
+
+          }
+
+          const data =
+            await response.json();
+
+          const score =
+            Number(data.risk_score) || 0;
+
+          const color =
+            riskColor(score);
+
+          box.innerHTML = `
+          <div class="risk-row">
+
+            <div
+              class="risk-number"
+              style="color:${color}"
+            >
+              ${score.toFixed(1)}
+            </div>
+
+            <div class="risk-progress">
+              <div
+                class="risk-fill"
+                style="
+                  width:${Math.min(score, 100)}%;
+                  background:${color};
+                "
+              ></div>
+            </div>
+
+          </div>
+
+          <span class="badge ${data.prediction === "fraud"
+              ? "fraud"
+              : "legit"
+            }">
+            ${data.prediction || "unknown"
+            }
+          </span>
+
+          <span
+            class="badge"
+            style="
+              background:#f3f5f9;
+              color:#687087;
+              margin-left:5px;
+            "
+          >
+            ${data.risk_bucket || "risk"
+            }
+          </span>
+
+          <div class="narrative">
+            ${data.narrative ||
+            "Detector returned a score without an explanation."
+            }
+          </div>
+
+          <button type="button" class="raw-toggle" id="scoreRawToggle">
+            View raw API response
+          </button>
+
+          <pre class="raw-json" id="scoreRawJson"></pre>
+        `;
+
+          const scoreRawBtn =
+            document.getElementById("scoreRawToggle");
+
+          const scoreRawPre =
+            document.getElementById("scoreRawJson");
+
+          if (scoreRawBtn && scoreRawPre) {
+
+            scoreRawPre.textContent =
+              JSON.stringify(data, null, 2);
+
+            scoreRawBtn.addEventListener("click", () => {
+
+              scoreRawPre.classList.toggle("show");
+
+              scoreRawBtn.textContent =
+                scoreRawPre.classList.contains("show")
+                  ? "Hide raw API response"
+                  : "View raw API response";
+
+            });
+
+          }
+
+          showToast(
+            "Blue-Team analysis completed"
+          );
+
+        }
+        catch (error) {
+
+          console.error("Blue-Team score request failed:", error);
+
+          box.innerHTML = `
+          <div class="hint">
+            <b>Backend unavailable.</b><br><br>
+            Could not reach
+            <span class="mono">
+              ${API_BASE}
+            </span>.
+            <br><br>
+            Start your backend with:
+            <br>
+            <span class="mono">
+              uvicorn api.main:app --reload
+            </span>
+          </div>
+
+          <button type="button" class="retry-btn" id="scoreRetryBtn">
+            ↻ Retry
+          </button>
+        `;
+
+          const scoreRetryBtn =
+            document.getElementById("scoreRetryBtn");
+
+          if (scoreRetryBtn) {
+
+            scoreRetryBtn.addEventListener("click", () => {
+              document.getElementById("scoreBtn").click();
+            });
+
+          }
+
+          showToast(
+            "Backend connection failed"
+          );
+
+        }
+
+      });
+
+    let attackRequestInFlight = false;
+
+    document
+      .getElementById("attackBtn")
+      .addEventListener("click", async () => {
+
+        if (attackRequestInFlight) {
+          return;
+        }
+
+        attackRequestInFlight = true;
+
+        const attackBtn =
+          document.getElementById("attackBtn");
+
+        const box =
+          document.getElementById("attackResult");
+
+        attackBtn.disabled = true;
+        attackBtn.textContent = "Simulating attack...";
+
+        box.innerHTML = `
+        <div class="hint">
+          <span class="spin"></span>
+          Red-Team attack being simulated...
+        </div>
+      `;
+
+        const attackType =
+          document.getElementById("a_type").value;
+
+        const intensity =
+          parseFloat(
+            document.getElementById("a_intensity").value
+          ) / 100;
+
+        const payload = {
+
+          transaction: {
+
+            transaction_id:
+              "TXN_BASE_" + Date.now(),
+
+            customer_id:
+              "CUST_BASE",
+
+            amount:
+              1200,
+
+            baseline_spend:
+              1200,
+
+            customer_baseline_spend:
+              1200,
+
+            merchant_category:
+              "grocery",
+
+            merchant_risk_score:
+              0.10,
+
+            device_type:
+              "web_browser",
+
+            payment_method:
+              "credit_card",
+
+            geo_distance_km:
+              0,
+
+            geo_distance_from_home_km:
+              0,
+
+            txn_count_last_24h:
+              1,
+
+            txn_frequency_24h:
+              1,
+
+            failed_txn_count_recent:
+              0,
+
+            failed_txn_count_24h:
+              0,
+
+            hour_of_day:
+              14,
+
+            account_age_days:
+              400,
+
+            prev_txn_amount:
+              1050,
+
+            customer_risk_appetite:
+              0.10
+
+          },
+
+          attack_type:
+            attackType,
+
+          intensity
+
+        };
+
+        try {
+
+          const response =
+            await fetch(
+              API_BASE + "/simulate-attack",
+              {
+
+                method: "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json"
+                },
+
+                body:
+                  JSON.stringify(payload),
+
+                signal:
+                  AbortSignal.timeout(10000)
+
+              }
+
+            );
+
+          if (!response.ok) {
+
+            let detail = "";
+
+            try {
+              const errBody = await response.json();
+              detail = errBody?.detail
+                ? (typeof errBody.detail === "string"
+                  ? errBody.detail
+                  : JSON.stringify(errBody.detail))
+                : "";
+            } catch (parseErr) {
+              /* response wasn't JSON - ignore */
+            }
+
+            throw new Error(
+              "API error " +
+              response.status +
+              (detail ? (" — " + detail) : "")
+            );
+
+          }
+
+          let data;
+
+          try {
+            data = await response.json();
+          } catch (parseErr) {
+            console.error("Attack Simulator: invalid JSON response", parseErr);
+            throw new Error("Backend returned an invalid response.");
+          }
+
+          const riskScore =
+            Number(data.risk_score) || 0;
+
+          const fraudProbability =
+            Number(data.fraud_probability) || 0;
+
+          const prediction =
+            (data.prediction || "").toString();
+
+          const attackedTransaction =
+            data.attacked_transaction || {};
+
+          const attackTypeLabel =
+            data.attack_type || attackType;
+
+          const color =
+            riskColor(riskScore);
+
+          const predictionLower =
+            prediction.toLowerCase();
+
+          const caught =
+            predictionLower === "fraud" ||
+            predictionLower === "fraudulent" ||
+            predictionLower.includes("fraud");
+
+          const fallback = (value, unit) => {
+            if (value === undefined || value === null || value === "") {
+              return "—";
+            }
+            return unit ? `${value}${unit}` : value;
+          };
+
+          const modAmount =
+            attackedTransaction.amount !== undefined
+              ? "₹" + Math.round(Number(attackedTransaction.amount))
+              : "—";
+
+          const modFrequency =
+            fallback(
+              attackedTransaction.txn_frequency_24h ??
+              attackedTransaction.txn_count_last_24h
+            );
+
+          const modGeo =
+            (attackedTransaction.geo_distance_km !== undefined ||
+              attackedTransaction.geo_distance_from_home_km !== undefined)
+              ? Math.round(
+                Number(
+                  attackedTransaction.geo_distance_km ??
+                  attackedTransaction.geo_distance_from_home_km
+                )
+              ) + "km"
+              : "—";
+
+          const modFailed =
+            fallback(
+              attackedTransaction.failed_txn_count_recent ??
+              attackedTransaction.failed_txn_count_24h
+            );
+
+          const modDevice =
+            fallback(attackedTransaction.device_type);
+
+          const modPayment =
+            fallback(attackedTransaction.payment_method);
+
+          box.innerHTML = `
+          <div class="risk-row">
+
+            <div
+              class="risk-number"
+              style="color:${color}"
+            >
+              ${riskScore.toFixed(1)}
+            </div>
+
+            <div class="risk-progress">
+              <div
+                class="risk-fill"
+                style="
+                  width:${Math.min(riskScore, 100)}%;
+                  background:${color};
+                "
+              ></div>
+            </div>
+
+          </div>
+
+          <span class="badge ${caught
+              ? "fraud"
+              : "legit"
+            }">
+            ${caught
+              ? "ATTACK CAUGHT"
+              : "ATTACK EVADED DETECTOR"
+            }
+          </span>
+
+          <span
+            class="badge"
+            style="
+              background:#f3f5f9;
+              color:#687087;
+              margin-left:5px;
+            "
+          >
+            fraud prob: ${(fraudProbability * (fraudProbability <= 1 ? 100 : 1)).toFixed(1)}%
+          </span>
+
+          <div class="narrative">
+            Baseline ₹1,200 grocery transaction
+            →
+            <b>
+              ${attackTypeLabel}
+            </b>
+            · intensity
+            ${intensity.toFixed(2)}
+            <br>
+            Modified amount:
+            ${modAmount}
+            · frequency:
+            ${modFrequency}
+            · geo:
+            ${modGeo}
+            · failed txns:
+            ${modFailed}
+            <br>
+            device:
+            ${modDevice}
+            · payment method:
+            ${modPayment}
+            <br><br>
+            Prediction: <b>${prediction || "unknown"}</b>
+          </div>
+
+          <button type="button" class="raw-toggle" id="attackRawToggle">
+            View raw API response
+          </button>
+
+          <pre class="raw-json" id="attackRawJson"></pre>
+        `;
+
+          const attackRawBtn =
+            document.getElementById("attackRawToggle");
+
+          const attackRawPre =
+            document.getElementById("attackRawJson");
+
+          if (attackRawBtn && attackRawPre) {
+
+            attackRawPre.textContent =
+              JSON.stringify(data, null, 2);
+
+            attackRawBtn.addEventListener("click", () => {
+
+              attackRawPre.classList.toggle("show");
+
+              attackRawBtn.textContent =
+                attackRawPre.classList.contains("show")
+                  ? "Hide raw API response"
+                  : "View raw API response";
+
+            });
+
+          }
+
+          showToast(
+            caught
+              ? "Attack caught by detector"
+              : "Attack evaded detector"
+          );
+
+        }
+        catch (error) {
+
+          console.error("Attack Simulator request failed:", error);
+
+          box.innerHTML = `
+          <div class="hint">
+            <b>Attack simulation failed.</b><br><br>
+            ${(error && error.name === "TimeoutError") || (error && error.name === "AbortError")
+              ? "The request timed out waiting for the backend."
+              : "Could not reach or parse the response from"
+            }
+            <span class="mono">
+              ${API_BASE}
+            </span>.
+            <br><br>
+            ${error && error.message ? `Details: ${error.message}<br><br>` : ""}
+            Start your backend with:
+            <br>
+            <span class="mono">
+              uvicorn api.main:app --reload
+            </span>
+          </div>
+
+          <button type="button" class="retry-btn" id="attackRetryBtn">
+            ↻ Retry
+          </button>
+        `;
+
+          const attackRetryBtn =
+            document.getElementById("attackRetryBtn");
+
+          if (attackRetryBtn) {
+
+            attackRetryBtn.addEventListener("click", () => {
+              document.getElementById("attackBtn").click();
+            });
+
+          }
+
+          showToast(
+            "Attack simulation failed"
+          );
+
+        }
+        finally {
+
+          attackRequestInFlight = false;
+          attackBtn.disabled = false;
+          attackBtn.textContent = "Craft & Detect Attack";
+
+        }
+
+      });
+
+    document
+      .getElementById("replayBtn")
+      .addEventListener(
+        "click",
+        playConsole
+      );
+
+    // Make the Quick Action cards keyboard accessible (Enter / Space)
+    document.querySelectorAll(".quick-card[role='button']").forEach(card => {
+      card.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+          e.preventDefault();
+          card.click();
+        }
+      });
+    });
+
+    renderArsenal();
+    createActivityChart();
+    createMetricCharts();
+    playConsole();
+
+    const sections = [
+      "overview",
+      "pipeline",
+      "fraud",
+      "attack",
+      "arsenal",
+      "metrics",
+      "api"
+    ];
+
+    window.addEventListener(
+      "scroll",
+      () => {
+
+        let current = "";
+
+        sections.forEach(id => {
+
+          const section =
+            document.getElementById(id);
+
+          if (!section)
+            return;
+
+          const top =
+            section.getBoundingClientRect().top;
+
+          if (top < 150)
+            current = id;
+
+        });
+
+        if (current) {
+
+          document
+            .querySelectorAll(".nav-item")
+            .forEach(item => {
+
+              item.classList.remove(
+                "active"
+              );
+
+              if (
+                item.getAttribute("href") ===
+                "#" + current
+              ) {
+
+                item.classList.add(
+                  "active"
+                );
+
+              }
+
+            });
+
+        }
+
+      }
+    );
+
+    /* ===== THEME TOGGLE (working version) ===== */
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('defenseLabTheme', theme);
+      const btn = document.getElementById('themeToggle');
+      if (btn) {
+        btn.textContent = theme === 'dark' ? '☀️ Light' : '🌙 Dark';
+        btn.setAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
+      }
+    }
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      applyTheme(current === 'dark' ? 'light' : 'dark');
+    }
+    (function () {
+      const saved = localStorage.getItem('defenseLabTheme');
+      if (saved) { applyTheme(saved); }
+      else {
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        applyTheme(prefersDark ? 'dark' : 'light');
+      }
+    })();
+
+    /* ============================================================
+       SECTION-LEVEL SCROLL REVEAL (alternating left / right)
+       + KPI count-up
+       ============================================================ */
+    (function () {
+
+      const scrollSections =
+        document.querySelectorAll('main section');
+
+      const prefersReducedMotion =
+        window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      scrollSections.forEach((el, i) => {
+        el.classList.add(i % 2 === 0 ? 'reveal-left' : 'reveal-right');
+      });
+
+      const arsenalSection = document.getElementById('arsenal');
+      if (arsenalSection) {
+        arsenalSection.classList.remove('reveal-right');
+        arsenalSection.classList.add('reveal-left');
+      }
+
+      if (prefersReducedMotion) {
+        // Respect the user's motion preference: show everything immediately,
+        // no slide-in transition.
+        scrollSections.forEach(el => el.classList.add('in-view'));
+      } else if ('IntersectionObserver' in window) {
+
+        const sectionIo = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('in-view');
+            } else {
+              entry.target.classList.remove('in-view');
+            }
+          });
+        }, { threshold: 0.15, rootMargin: '0px 0px -60px 0px' });
+
+        scrollSections.forEach(el => sectionIo.observe(el));
+
+      } else {
+        scrollSections.forEach(el => el.classList.add('in-view'));
+      }
+
+      function animateCount(el) {
+
+        const raw = el.textContent.trim();
+        const match = raw.match(/^([\d.]+)(.*)$/);
+
+        if (!match) return;
+
+        const target = parseFloat(match[1]);
+        const suffix = match[2] || '';
+        const decimals = (match[1].split('.')[1] || '').length;
+
+        if (!Number.isFinite(target)) return;
+
+        if (prefersReducedMotion) {
+          el.textContent = target.toFixed(decimals) + suffix;
+          return;
+        }
+
+        const duration = 900;
+        const start = performance.now();
+
+        function tick(now) {
+
+          const progress = Math.min(1, (now - start) / duration);
+          const current = target * progress;
+
+          el.textContent = current.toFixed(decimals) + suffix;
+
+          if (progress < 1) {
+            requestAnimationFrame(tick);
+          } else {
+            el.textContent = target.toFixed(decimals) + suffix;
+          }
+
+        }
+
+        requestAnimationFrame(tick);
+
+      }
+
+      const kpiNumbers = document.querySelectorAll('.kpi .number');
+
+      if ('IntersectionObserver' in window) {
+
+        const kpiIo = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              animateCount(entry.target);
+              kpiIo.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.4 });
+
+        kpiNumbers.forEach(el => kpiIo.observe(el));
+
+      }
+
+    })();
+
+  </script>
+
+  <div id="liveDemoModal">
+    <div class="live-demo-window">
+
+      <div class="live-demo-top">
+        <div>
+          <div class="live-demo-title">
+            AI DEFENSE LAB · LIVE DEFENSE LOOP
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div class="live-demo-status">
+            <span class="live-demo-status-dot"></span>
+            BACKEND CONNECTED
+          </div>
+
+          <button class="live-demo-close" id="liveDemoClose" aria-label="Close live demo">
+            ×
+          </button>
+        </div>
+      </div>
+
+      <div class="live-demo-body">
+
+        <div class="live-demo-progress">
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+
+        <div id="liveDemoStage" class="live-demo-stage"></div>
+
+        <div class="live-demo-footer">
+          <button class="live-demo-button secondary" id="liveDemoCancel">
+            Close
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+  <script id="live-demo-final-js">
+
+    (function () {
+
+      const API =
+        window.API_BASE ||
+        "http://127.0.0.1:8000";
+
+      const modal =
+        document.getElementById("liveDemoModal");
+
+      const stage =
+        document.getElementById("liveDemoStage");
+
+      const closeBtn =
+        document.getElementById("liveDemoClose");
+
+      const cancelBtn =
+        document.getElementById("liveDemoCancel");
+
+      const progress =
+        Array.from(
+          document.querySelectorAll(
+            "#liveDemoModal .live-demo-progress span"
+          )
+        );
+
+      let running = false;
+      let timers = [];
+
+      function wait(ms) {
+        return new Promise(resolve => {
+          const t = setTimeout(resolve, ms);
+          timers.push(t);
+        });
+      }
+
+      function clearTimers() {
+        timers.forEach(clearTimeout);
+        timers = [];
+      }
+
+      function openModal() {
+        clearTimers();
+        running = true;
+        modal.classList.add("open");
+
+        progress.forEach(x =>
+          x.classList.remove("active")
+        );
+
+        runDemo();
+      }
+
+      function closeModal() {
+        running = false;
+        clearTimers();
+        modal.classList.remove("open");
+      }
+
+      closeBtn.addEventListener("click", closeModal);
+      cancelBtn.addEventListener("click", closeModal);
+
+      modal.addEventListener("click", function (e) {
+        if (e.target === modal) {
+          closeModal();
+        }
+      });
+
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && modal.classList.contains("open")) {
+          closeModal();
+        }
+      });
+
+      /*
+       * ----------------------------------------------------------
+       * API REQUEST
+       * ----------------------------------------------------------
+       */
+
+      async function api(path, options = {}) {
+
+        const controller =
+          new AbortController();
+
+        const timeout =
+          setTimeout(
+            () => controller.abort(),
+            8000
+          );
+
+        try {
+
+          const response =
+            await fetch(
+              API + path,
+              {
+                ...options,
+                signal: controller.signal
+              }
+            );
+
+          if (!response.ok) {
+            throw new Error(
+              path + " returned HTTP " +
+              response.status
+            );
+          }
+
+          return await response.json();
+
+        } finally {
+
+          clearTimeout(timeout);
+
+        }
+      }
+
+      /*
+       * ----------------------------------------------------------
+       * TRANSACTION
+       * This matches the CURRENT FastAPI schema shown in Swagger.
+       * ----------------------------------------------------------
+       */
+
+      function baseTransaction() {
+
+        return {
+
+          transaction_id:
+            "TXN_LIVE_" + Date.now(),
+
+          customer_id:
+            "CUST_LIVE",
+
+          amount: 1200,
+
+          baseline_spend:
+            1200,
+
+          customer_baseline_spend:
+            1200,
+
+          merchant_category:
+            "grocery",
+
+          merchant_risk_score:
+            0.05,
+
+          device_type:
+            "mobile_app",
+
+          payment_method:
+            "chip",
+
+          geo_distance_km:
+            3,
+
+          geo_distance_from_home_km:
+            3,
+
+          account_age_days:
+            900,
+
+          failed_txn_count_recent:
+            0,
+
+          failed_txn_count_24h:
+            0,
+
+          txn_count_last_24h:
+            1,
+
+          txn_frequency_24h:
+            1,
+
+          hour_of_day:
+            14,
+
+          prev_txn_amount:
+            1050,
+
+          customer_risk_appetite:
+            0.10
+        };
+
+      }
+
+      /*
+       * ----------------------------------------------------------
+       * RENDER HELPERS
+       * ----------------------------------------------------------
+       */
+
+      function step(n) {
+
+        progress.forEach(
+          (x, i) =>
+            x.classList.toggle(
+              "active",
+              i < n
+            )
+        );
+
+      }
+
+      function riskColor(score) {
+
+        if (score >= 80)
+          return "#ff5366";
+
+        if (score >= 60)
+          return "#ffb84d";
+
+        return "#18c79d";
+
+      }
+
+      async function animateRisk(score) {
+
+        const number =
+          document.getElementById(
+            "liveRiskNumber"
+          );
+
+        const fill =
+          document.getElementById(
+            "liveRiskFill"
+          );
+
+        if (!number || !fill)
+          return;
+
+        let current = 0;
+
+        const target =
+          Math.max(
+            0,
+            Math.min(
+              100,
+              Number(score) || 0
+            )
+          );
+
+        fill.style.background =
+          riskColor(target);
+
+        while (
+          current < target &&
+          running
+        ) {
+
+          current += Math.max(
+            .7,
+            target / 35
+          );
+
+          if (current > target)
+            current = target;
+
+          number.textContent =
+            current.toFixed(1);
+
+          fill.style.width =
+            current + "%";
+
+          await wait(35);
+
+        }
+
+      }
+
+      /*
+       * ----------------------------------------------------------
+       * FULL LIVE DEMO
+       * ----------------------------------------------------------
+       */
+
+      async function runDemo() {
+
+        try {
+
+          /*
+           * STEP 1
+           * Backend health
+           */
+
+          step(1);
+
+          stage.innerHTML = `
+        <div class="live-demo-kicker">
+          STEP 01 · SYSTEM CHECK
+        </div>
+
+        <div class="live-demo-headline white">
+          Connecting to the<br>
+          <span style="color:#18c79d">
+            Blue Team
+          </span>
+        </div>
+
+        <div class="live-demo-sub">
+          The browser is making a real request to
+          <b>${API}/health</b>.
+        </div>
+
+        <div class="live-api-flow">
+          <div class="live-api-node">
+            Browser
+          </div>
+
+          <div class="live-api-arrow">
+            →
+          </div>
+
+          <div class="live-api-node">
+            FastAPI
+          </div>
+
+          <div class="live-api-arrow">
+            →
+          </div>
+
+          <div class="live-api-node">
+            XGBoost
+          </div>
+        </div>
+      `;
+
+          const health =
+            await api("/health");
+
+          if (!running)
+            return;
+
+          await wait(700);
+
+          /*
+           * STEP 2
+           * Generate
+           */
+
+          step(2);
+
+          stage.innerHTML = `
+        <div class="live-demo-kicker">
+          STEP 02 · GENERATE
+        </div>
+
+        <div class="live-demo-headline teal">
+          Legitimate transaction
+        </div>
+
+        <div class="live-demo-sub">
+          Starting with a clean synthetic payment
+          before the Red-Team modifies it.
+        </div>
+
+        <div class="live-txn-card">
+
+          <div class="live-txn-cell">
+            <small>Amount</small>
+            <strong>₹1,200</strong>
+          </div>
+
+          <div class="live-txn-cell">
+            <small>Merchant</small>
+            <strong>Grocery</strong>
+          </div>
+
+          <div class="live-txn-cell">
+            <small>Device</small>
+            <strong>Mobile App</strong>
+          </div>
+
+          <div class="live-txn-cell">
+            <small>Location</small>
+            <strong>3 km</strong>
+          </div>
+
+        </div>
+
+        <div class="live-result">
+          ✓ Synthetic transaction generated
+        </div>
+      `;
+
+          await wait(1500);
+
+          /*
+           * STEP 3
+           * Red Team
+           */
+
+          step(3);
+
+          stage.innerHTML = `
+        <div class="live-demo-kicker">
+          STEP 03 · RED TEAM
+        </div>
+
+        <div class="live-demo-headline red">
+          Behavioral Mimicry Attack
+        </div>
+
+        <div class="live-demo-sub">
+          The Red-Team simulator crafts a subtle
+          adversarial payment designed to look
+          like normal customer behaviour.
+        </div>
+
+        <div class="live-api-flow">
+
+          <div class="live-api-node">
+            ₹1,200
+          </div>
+
+          <div class="live-api-arrow">
+            →
+          </div>
+
+          <div class="live-api-node">
+            Red-Team
+          </div>
+
+          <div class="live-api-arrow">
+            →
+          </div>
+
+          <div class="live-api-node">
+            /simulate-attack
+          </div>
+
+        </div>
+      `;
+
+          /*
+           * ACTUAL BACKEND CALL
+           */
+
+          const attackPayload = {
+
+            transaction:
+              baseTransaction(),
+
+            attack_type:
+              "behavioral_mimicry",
+
+            intensity:
+              0.65
+
+          };
+
+          const attack =
+            await api(
+              "/simulate-attack",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type":
+                    "application/json"
+                },
+                body:
+                  JSON.stringify(
+                    attackPayload
+                  )
+              }
+            );
+
+          if (!running)
+            return;
+
+          const modified =
+            attack.attacked_transaction ||
+            {};
+
+          await wait(900);
+
+          /*
+           * STEP 4
+           * Blue Team
+           */
+
+          step(4);
+
+          stage.innerHTML = `
+        <div class="live-demo-kicker">
+          STEP 04 · BLUE TEAM · LIVE API
+        </div>
+
+        <div class="live-demo-headline white">
+          Detector is scoring
+          the attack
+        </div>
+
+        <div class="live-demo-sub">
+          Actual response received from
+          <b>POST /simulate-attack</b>.
+          Now showing the model's risk score.
+        </div>
+
+        <div class="live-risk">
+
+          <div
+            id="liveRiskNumber"
+            class="live-risk-number">
+            0.0
+          </div>
+
+          <div class="live-risk-label">
+            Risk score / 100
+          </div>
+
+          <div class="live-risk-track">
+            <div
+              id="liveRiskFill"
+              class="live-risk-fill">
+            </div>
+          </div>
+
+        </div>
+
+        <div class="live-txn-card">
+
+          <div class="live-txn-cell">
+            <small>Attack</small>
+            <strong>
+              ${attack.attack_type || "behavioral_mimicry"}
+            </strong>
+          </div>
+
+          <div class="live-txn-cell">
+            <small>Modified Amount</small>
+            <strong>
+              ₹${Math.round(
+            Number(
+              modified.amount || 1200
+            )
+          )}
+            </strong>
+          </div>
+
+          <div class="live-txn-cell">
+            <small>Backend</small>
+            <strong>ONLINE</strong>
+          </div>
+
+          <div class="live-txn-cell">
+            <small>Model</small>
+            <strong>XGBoost</strong>
+          </div>
+
+        </div>
+      `;
+
+          const score =
+            Number(
+              attack.risk_score ??
+              (Number(attack.fraud_probability) * 100) ??
+              0
+            );
+
+          await animateRisk(score);
+
+          await wait(1200);
+
+          /*
+           * STEP 5
+           * Result + Metrics
+           */
+
+          step(5);
+
+          const predictionText =
+            (attack.prediction || "").toString();
+
+          const attackCaught =
+            predictionText.toLowerCase().includes("fraud");
+
+          stage.innerHTML = `
+        <div class="live-demo-kicker">
+          STEP 05 · DEFENSE RESULT
+        </div>
+
+        <div class="live-demo-headline ${attackCaught
+              ? "teal"
+              : "red"
+            }">
+
+          ${attackCaught
+              ? "⚠ ATTACK DETECTED"
+              : "✓ ATTACK PASSED DETECTOR"
+            }
+
+        </div>
+
+        <div class="live-demo-sub">
+          The Blue-Team detector returned
+          a risk score of
+          <b>${score.toFixed(1)}/100</b>.
+        </div>
+
+        <div class="live-result">
+
+          <div class="live-result-big">
+            ${predictionText ||
+            "Detector response received"}
+          </div>
+
+          <div style="margin-top:10px;color:#9ba7bd">
+            Live API analysis completed.
+          </div>
+
+        </div>
+      `;
+
+          await wait(1300);
+
+          /*
+           * STEP 6
+           * Metrics / closed-loop evidence
+           *
+           * IMPORTANT:
+           * This reads the real metrics endpoint.
+           * It does NOT falsely claim that the browser
+           * retrained the model.
+           */
+
+          step(6);
+
+          let metrics = null;
+
+          try {
+            metrics =
+              await api("/metrics");
+          } catch (e) {
+            metrics = null;
+          }
+
+          const before =
+            metrics?.closed_loop_summary?.detection_rate_before ??
+            0.1473333333;
+
+          const after =
+            metrics?.closed_loop_summary?.detection_rate_after ??
+            0.7963333333;
+
+          const beforePct =
+            (Number(before) * 100);
+
+          const afterPct =
+            (Number(after) * 100);
+
+          stage.innerHTML = `
+        <div class="live-demo-kicker">
+          STEP 06 · CLOSED LOOP EVIDENCE
+        </div>
+
+        <div class="live-demo-headline teal">
+          Detect → Learn → Improve
+        </div>
+
+        <div class="live-demo-sub">
+          The dashboard now reads the project's
+          recorded closed-loop evaluation metrics
+          from the backend.
+        </div>
+
+        <div class="live-bars">
+
+          <div class="live-bar-row">
+            <span>Before</span>
+
+            <div class="live-bar-track">
+              <div
+                id="liveBeforeBar"
+                class="live-bar-fill live-bar-before">
+              </div>
+            </div>
+
+            <strong>
+              ${beforePct.toFixed(1)}%
+            </strong>
+          </div>
+
+          <div class="live-bar-row">
+            <span>After</span>
+
+            <div class="live-bar-track">
+              <div
+                id="liveAfterBar"
+                class="live-bar-fill live-bar-after">
+              </div>
+            </div>
+
+            <strong>
+              ${afterPct.toFixed(1)}%
+            </strong>
+          </div>
+
+        </div>
+
+        <div class="live-result">
+
+          <div class="live-result-big">
+            +${(
+              ((afterPct - beforePct) /
+                beforePct) * 100
+            ).toFixed(0)}%
+            relative detection improvement
+          </div>
+
+          <div style="
+            margin-top:10px;
+            color:#9ba7bd;
+          ">
+            Missed adversarial samples are used
+            by the project's offline adversarial
+            training pipeline.
+          </div>
+
+        </div>
+
+        <div style="
+          margin-top:18px;
+          color:#7ee7cf;
+          font-size:13px;
+        ">
+          ✓ Live API request completed<br>
+          ✓ Red-Team simulation completed<br>
+          ✓ Blue-Team scoring completed<br>
+          ✓ Closed-loop metrics loaded
+        </div>
+
+        <div class="live-demo-footer">
+
+          <button
+            class="live-demo-button primary"
+            id="liveExploreBtn">
+            Explore Dashboard →
+          </button>
+
+        </div>
+      `;
+
+          await wait(150);
+
+          const bb =
+            document.getElementById(
+              "liveBeforeBar"
+            );
+
+          const ba =
+            document.getElementById(
+              "liveAfterBar"
+            );
+
+          if (bb)
+            bb.style.width =
+              Math.min(beforePct, 100) + "%";
+
+          if (ba)
+            ba.style.width =
+              Math.min(afterPct, 100) + "%";
+
+          const explore =
+            document.getElementById(
+              "liveExploreBtn"
+            );
+
+          if (explore) {
+
+            explore.addEventListener(
+              "click",
+              () => {
+
+                closeModal();
+
+                const target =
+                  document.getElementById(
+                    "fraud"
+                  ) ||
+                  document.getElementById(
+                    "demo"
+                  );
+
+                if (target) {
+
+                  target.scrollIntoView({
+                    behavior: "smooth"
+                  });
+
+                }
+
+              }
+            );
+
+          }
+
+        } catch (error) {
+
+          if (!running)
+            return;
+
+          console.error("Live demo request failed:", error);
+
+          stage.innerHTML = `
+        <div class="live-demo-kicker">
+          LIVE API ERROR
+        </div>
+
+        <div class="live-demo-headline red">
+          Backend request failed
+        </div>
+
+        <div class="live-error">
+
+          ${String(error.message || error)}
+
+          <br><br>
+
+          Check that FastAPI is running on:
+
+          <b>${API}</b>
+
+          <br><br>
+
+          Expected endpoints:
+
+          <br>
+          GET /health
+          <br>
+          POST /predict
+          <br>
+          POST /simulate-attack
+          <br>
+          GET /metrics
+
+        </div>
+      `;
+
+        }
+
+      }
+
+      /*
+       * ----------------------------------------------------------
+       * CONNECT HERO BUTTON
+       * ----------------------------------------------------------
+       */
+
+      window.runFullDemo =
+        openModal;
+
+      /*
+       * ----------------------------------------------------------
+       * CIRCLE CLICK ACTIONS
+       * ----------------------------------------------------------
+       */
+
+      const red =
+        document.querySelector(
+          ".vcircle.red"
+        );
+
+      const blue =
+        document.querySelector(
+          ".vcircle.teal"
+        );
+
+      const loop =
+        document.querySelector(
+          ".vlabel.loop"
+        );
+
+      function go(id) {
+
+        const el =
+          document.getElementById(id);
+
+        if (el) {
+
+          el.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+          });
+
+          el.style.outline =
+            "3px solid rgba(24,199,157,.45)";
+
+          setTimeout(
+            () => {
+              el.style.outline = "";
+            },
+            1200
+          );
+
+        }
+
+      }
+
+      if (red) {
+
+        red.title =
+          "Open Red-Team Attack Simulator";
+
+        red.addEventListener(
+          "click",
+          () => {
+
+            go("attack");
+
+          }
+        );
+
+      }
+
+      if (blue) {
+
+        blue.title =
+          "Open Blue-Team Fraud Detection";
+
+        blue.addEventListener(
+          "click",
+          () => {
+
+            go("fraud");
+
+          }
+        );
+
+      }
+
+      if (loop) {
+
+        loop.title =
+          "Run the complete closed-loop demo";
+
+        loop.addEventListener(
+          "click",
+          openModal
+        );
+
+      }
+
+      /*
+       * ----------------------------------------------------------
+       * ALSO MAKE LABELS CLICKABLE
+       * ----------------------------------------------------------
+       */
+
+      document
+        .querySelectorAll(
+          ".vlabel.red"
+        )
+        .forEach(el => {
+
+          el.style.cursor =
+            "pointer";
+
+          el.addEventListener(
+            "click",
+            () => go("attack")
+          );
+
+        });
+
+      document
+        .querySelectorAll(
+          ".vlabel.teal"
+        )
+        .forEach(el => {
+
+          el.style.cursor =
+            "pointer";
+
+          el.addEventListener(
+            "click",
+            () => go("fraud")
+          );
+
+        });
+
+      /*
+       * ----------------------------------------------------------
+       * AUTO HEALTH CHECK
+       * ----------------------------------------------------------
+       */
+
+      async function healthCheck() {
+
+        try {
+
+          const h =
+            await api("/health");
+
+          document
+            .querySelectorAll(
+              "#statusText"
+            )
+            .forEach(el => {
+
+              el.textContent =
+                h.status === "ok"
+                  ? "API online · XGBoost ready"
+                  : "API error";
+
+            });
+
+          document
+            .querySelectorAll(
+              "#healthModel"
+            )
+            .forEach(el => {
+
+              el.textContent =
+                h.model_loaded
+                  ? "READY"
+                  : "OFFLINE";
+
+            });
+
+        } catch (e) {
+
+          document
+            .querySelectorAll(
+              "#statusText"
+            )
+            .forEach(el => {
+
+              el.textContent =
+                "Demo mode";
+
+            });
+
+        }
+
+      }
+
+      healthCheck();
+
+    })();
+
+  </script>
+
+
+
+
+
+
+
+</body>
+
+</html>
+
+

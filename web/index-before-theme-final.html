@@ -1,0 +1,5078 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>AI Defense Lab — Payment Security</title>
+
+  <link rel="icon"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 20'%3E%3Ccircle cx='11' cy='10' r='9' fill='%23ff4757'/%3E%3Ccircle cx='21' cy='10' r='9' fill='%2300c896'/%3E%3C/svg%3E">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js">
+    /* ===== DAY / NIGHT THEME ===== */
+    (function () {
+      const root = document.documentElement;
+      const toggle = document.getElementById('themeToggle');
+      const icon = document.getElementById('themeIcon');
+      const label = document.getElementById('themeLabel');
+
+      function applyTheme(theme) {
+        root.setAttribute('data-theme', theme);
+
+        if (theme === 'dark') {
+          icon.textContent = '🌙';
+          label.textContent = 'Night';
+          toggle.setAttribute('aria-label', 'Switch to day mode');
+        } else {
+          icon.textContent = '☀️';
+          label.textContent = 'Day';
+          toggle.setAttribute('aria-label', 'Switch to night mode');
+        }
+
+        localStorage.setItem('defenseLabTheme', theme);
+      }
+
+      const saved = localStorage.getItem('defenseLabTheme');
+
+      if (saved) {
+        applyTheme(saved);
+      } else {
+        const prefersDark = window.matchMedia &&
+          window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        applyTheme(prefersDark ? 'dark' : 'light');
+      }
+
+      toggle.addEventListener('click', function () {
+        const current = root.getAttribute('data-theme') || 'light';
+        applyTheme(current === 'dark' ? 'light' : 'dark');
+      });
+    })();
+
+
+    /* ---------- LIGHT / DARK / SYSTEM THEME ---------- */
+    (function () {
+      const root = document.documentElement;
+      const lightBtn = document.getElementById("lightTheme");
+      const darkBtn = document.getElementById("darkTheme");
+      const systemBtn = document.getElementById("systemTheme");
+
+      function systemDark() {
+        return window.matchMedia &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches;
+      }
+
+      function applyTheme(mode) {
+        localStorage.setItem("defenseLabTheme", mode);
+
+        const isDark =
+          mode === "dark" ||
+          (mode === "system" && systemDark());
+
+        root.classList.toggle("dark", isDark);
+
+        [lightBtn, darkBtn, systemBtn].forEach(b => {
+          if (b) b.classList.remove("active");
+        });
+
+        if (mode === "light") lightBtn?.classList.add("active");
+        if (mode === "dark") darkBtn?.classList.add("active");
+        if (mode === "system") systemBtn?.classList.add("active");
+      }
+
+      const saved = localStorage.getItem("defenseLabTheme") || "system";
+      applyTheme(saved);
+
+      lightBtn?.addEventListener("click", () => applyTheme("light"));
+      darkBtn?.addEventListener("click", () => applyTheme("dark"));
+      systemBtn?.addEventListener("click", () => applyTheme("system"));
+
+      const media = window.matchMedia("(prefers-color-scheme: dark)");
+      media.addEventListener?.("change", () => {
+        if ((localStorage.getItem("defenseLabTheme") || "system") === "system") {
+          applyTheme("system");
+        }
+      });
+    })();
+
+  </script>
+
+  <style>
+    /* =========================================================
+   ROOT
+========================================================= */
+
+    :root {
+      --bg: #f4f6fa;
+      --surface: #ffffff;
+      --surface2: #f8f9fc;
+
+      --ink: #151827;
+      --muted: #6c7287;
+      --line: #e8ebf2;
+
+      --red: #ff4757;
+      --red-dark: #d71935;
+      --red-soft: #ffe7eb;
+
+      --teal: #00c896;
+      --teal-dark: #00875f;
+      --teal-soft: #dcf9ef;
+
+      --blue: #3654ff;
+      --blue-soft: #e9edff;
+
+      --amber: #ffab00;
+      --amber-soft: #fff3d6;
+
+      --purple: #7c5cff;
+      --purple-soft: #eeeaff;
+
+      --dark: #171a2b;
+      --dark2: #0d101c;
+
+      --shadow-sm:
+        0 2px 8px rgba(20, 25, 45, .04);
+
+      --shadow-md:
+        0 8px 25px rgba(20, 25, 45, .07);
+
+      --shadow-lg:
+        0 20px 55px rgba(20, 25, 45, .12);
+
+      --radius: 18px;
+      --radius-sm: 12px;
+
+      --sidebar: 245px;
+    }
+
+    /* =========================================================
+   RESET
+========================================================= */
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .mono {
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    .display {
+      font-family: "Space Grotesk", sans-serif;
+    }
+
+    /* =========================================================
+   SIDEBAR
+========================================================= */
+
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: var(--sidebar);
+
+      background: #111421;
+      color: white;
+
+      padding: 22px 14px;
+
+      z-index: 1000;
+
+      display: flex;
+      flex-direction: column;
+
+      border-right: 1px solid rgba(255, 255, 255, .05);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      padding: 8px 10px 28px;
+
+      font-family: "Space Grotesk";
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: .4px;
+    }
+
+    .logo {
+      position: relative;
+      width: 32px;
+      height: 22px;
+    }
+
+    .logo span {
+      position: absolute;
+
+      width: 19px;
+      height: 19px;
+
+      border-radius: 50%;
+
+      top: 1px;
+    }
+
+    .logo .r {
+      left: 0;
+      background: var(--red);
+    }
+
+    .logo .t {
+      left: 12px;
+      background: var(--teal);
+    }
+
+    .sidebar-label {
+      padding: 10px 12px 7px;
+
+      font-family: "JetBrains Mono";
+      font-size: 9px;
+
+      color: #6f758c;
+
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .nav {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+
+      padding: 11px 12px;
+
+      color: #9298ae;
+
+      border-radius: 10px;
+
+      font-size: 12.5px;
+      font-weight: 600;
+
+      transition: .15s;
+    }
+
+    .nav-item:hover {
+      background: rgba(255, 255, 255, .06);
+      color: white;
+    }
+
+    .nav-item.active {
+      background: rgba(0, 200, 150, .13);
+      color: #69e5c1;
+    }
+
+    .nav-icon {
+      width: 20px;
+      text-align: center;
+      font-size: 15px;
+    }
+
+    .sidebar-bottom {
+      margin-top: auto;
+    }
+
+    .backend-mini {
+      padding: 13px;
+
+      border-radius: 12px;
+
+      background: #191d2c;
+
+      border: 1px solid rgba(255, 255, 255, .05);
+    }
+
+    .backend-mini-title {
+      font-family: "JetBrains Mono";
+      font-size: 9px;
+      color: #70778f;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .backend-mini-status {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #73798c;
+    }
+
+    .status-dot.online {
+      background: var(--teal);
+      box-shadow: 0 0 0 4px rgba(0, 200, 150, .1);
+    }
+
+    .status-dot.offline {
+      background: var(--red);
+    }
+
+    .version {
+      font-family: "JetBrains Mono";
+      font-size: 9px;
+      color: #555c73;
+      margin-top: 7px;
+    }
+
+    /* =========================================================
+   MOBILE SIDEBAR
+========================================================= */
+
+    .mobile-top {
+      display: none;
+
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+
+      height: 60px;
+
+      background: #111421;
+      color: white;
+
+      z-index: 1100;
+
+      align-items: center;
+      justify-content: space-between;
+
+      padding: 0 16px;
+    }
+
+    .mobile-brand {
+      font-family: "Space Grotesk";
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    .menu-btn {
+      border: 0;
+      background: #222638;
+      color: white;
+
+      width: 38px;
+      height: 38px;
+
+      border-radius: 9px;
+    }
+
+    /* =========================================================
+   MAIN
+========================================================= */
+
+    .main {
+      margin-left: var(--sidebar);
+      min-height: 100vh;
+    }
+
+    .topbar {
+      height: 68px;
+
+      background: rgba(255, 255, 255, .9);
+
+      backdrop-filter: blur(12px);
+
+      border-bottom: 1px solid var(--line);
+
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      padding: 0 30px;
+
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .breadcrumb b {
+      color: var(--ink);
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .api-pill {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+
+      padding: 8px 12px;
+
+      border-radius: 999px;
+
+      background: var(--surface2);
+
+      font-family: "JetBrains Mono";
+      font-size: 10px;
+
+      color: var(--muted);
+    }
+
+    .btn-small {
+      border: 1px solid var(--line);
+
+      background: white;
+
+      padding: 8px 12px;
+
+      border-radius: 9px;
+
+      font-size: 11px;
+      font-weight: 700;
+
+      color: var(--ink);
+    }
+
+    .btn-small:hover {
+      background: var(--surface2);
+    }
+
+    /* =========================================================
+   PAGE
+========================================================= */
+
+    .page {
+      max-width: 1400px;
+      margin: auto;
+      padding: 34px 30px 70px;
+    }
+
+    /* =========================================================
+   HERO
+========================================================= */
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.25fr .75fr;
+      gap: 28px;
+
+      margin-bottom: 26px;
+    }
+
+    .hero-main {
+      background: var(--surface);
+
+      border-radius: 24px;
+
+      padding: 38px;
+
+      box-shadow: var(--shadow-sm);
+
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-main:after {
+      content: "";
+
+      position: absolute;
+
+      width: 300px;
+      height: 300px;
+
+      right: -130px;
+      bottom: -150px;
+
+      border-radius: 50%;
+
+      background: var(--teal-soft);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+
+      background: var(--teal-soft);
+      color: var(--teal-dark);
+
+      padding: 7px 12px;
+
+      border-radius: 999px;
+
+      font-family: "JetBrains Mono";
+      font-size: 9.5px;
+      font-weight: 700;
+
+      letter-spacing: .6px;
+      text-transform: uppercase;
+
+      margin-bottom: 18px;
+    }
+
+    .hero-main h1 {
+      font-family: "Space Grotesk";
+
+      font-size: 45px;
+      line-height: 1.05;
+
+      letter-spacing: -1.5px;
+
+      margin-bottom: 15px;
+
+      max-width: 700px;
+    }
+
+    .hero-main h1 .red {
+      color: var(--red);
+    }
+
+    .hero-main h1 .teal {
+      color: var(--teal-dark);
+    }
+
+    .hero-description {
+      color: var(--muted);
+
+      font-size: 14px;
+
+      max-width: 650px;
+
+      line-height: 1.7;
+
+      margin-bottom: 24px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+    }
+
+    .primary-btn {
+      background: var(--dark);
+      color: white;
+
+      border: 0;
+
+      padding: 12px 17px;
+
+      border-radius: 999px;
+
+      font-family: "Space Grotesk";
+      font-size: 12px;
+      font-weight: 700;
+
+      box-shadow: var(--shadow-sm);
+    }
+
+    .primary-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .secondary-btn {
+      background: white;
+      color: var(--ink);
+
+      border: 1px solid var(--line);
+
+      padding: 12px 17px;
+
+      border-radius: 999px;
+
+      font-family: "Space Grotesk";
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .hero-visual {
+      background: var(--dark);
+
+      border-radius: 24px;
+
+      min-height: 285px;
+
+      position: relative;
+
+      overflow: hidden;
+
+      box-shadow: var(--shadow-md);
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .venn {
+      width: 230px;
+      height: 230px;
+      position: relative;
+    }
+
+    .vcircle {
+      position: absolute;
+
+      width: 145px;
+      height: 145px;
+
+      border-radius: 50%;
+
+      top: 40px;
+    }
+
+    .vcircle.red {
+      left: 10px;
+      background: rgba(255, 71, 87, .9);
+      box-shadow: 0 15px 40px rgba(255, 71, 87, .25);
+    }
+
+    .vcircle.teal {
+      right: 10px;
+      background: rgba(0, 200, 150, .9);
+      box-shadow: 0 15px 40px rgba(0, 200, 150, .25);
+    }
+
+    .vlabel {
+      position: absolute;
+
+      font-family: "JetBrains Mono";
+
+      font-size: 9px;
+      font-weight: 700;
+
+      letter-spacing: .5px;
+
+      text-transform: uppercase;
+    }
+
+    .vlabel.red {
+      top: 22px;
+      left: 17px;
+      color: #ff8e99;
+    }
+
+    .vlabel.teal {
+      top: 22px;
+      right: 17px;
+      color: #69e5c1;
+    }
+
+    .vlabel.loop {
+      bottom: 23px;
+      left: 50%;
+      transform: translateX(-50%);
+
+      background: white;
+      color: var(--dark);
+
+      padding: 7px 13px;
+
+      border-radius: 999px;
+
+      white-space: nowrap;
+
+      font-size: 9px;
+    }
+
+    /* =========================================================
+   HERO STATS
+========================================================= */
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+
+      gap: 10px;
+
+      margin-top: 23px;
+
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-stat {
+      background: var(--surface2);
+
+      border-radius: 12px;
+
+      padding: 13px;
+    }
+
+    .hero-stat .value {
+      font-family: "Space Grotesk";
+      font-size: 21px;
+      font-weight: 800;
+    }
+
+    .hero-stat .label {
+      font-size: 9px;
+      color: var(--muted);
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: .4px;
+    }
+
+    /* =========================================================
+   SECTION
+========================================================= */
+
+    .section {
+      margin-top: 30px;
+      scroll-margin-top: 90px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+
+      margin-bottom: 15px;
+
+      gap: 20px;
+    }
+
+    .section-title {
+      font-family: "Space Grotesk";
+
+      font-size: 23px;
+      font-weight: 800;
+
+      letter-spacing: -.5px;
+    }
+
+    .section-sub {
+      color: var(--muted);
+      font-size: 11.5px;
+      margin-top: 3px;
+    }
+
+    /* =========================================================
+   KPI
+========================================================= */
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 13px;
+    }
+
+    .kpi {
+      background: var(--surface);
+
+      border: 1px solid var(--line);
+
+      border-radius: 16px;
+
+      padding: 18px;
+
+      box-shadow: var(--shadow-sm);
+
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .kpi-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .kpi-icon {
+      width: 32px;
+      height: 32px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 9px;
+
+      font-size: 14px;
+    }
+
+    .kpi-icon.teal {
+      background: var(--teal-soft);
+    }
+
+    .kpi-icon.red {
+      background: var(--red-soft);
+    }
+
+    .kpi-icon.blue {
+      background: var(--blue-soft);
+    }
+
+    .kpi-icon.amber {
+      background: var(--amber-soft);
+    }
+
+    .kpi .number {
+      font-family: "Space Grotesk";
+      font-size: 27px;
+      font-weight: 800;
+
+      margin-top: 11px;
+    }
+
+    .kpi .caption {
+      color: var(--muted);
+
+      font-size: 9.5px;
+      font-weight: 700;
+
+      text-transform: uppercase;
+      letter-spacing: .5px;
+    }
+
+    .kpi-change {
+      font-family: "JetBrains Mono";
+      font-size: 9px;
+      color: var(--teal-dark);
+    }
+
+    /* =========================================================
+   OVERVIEW GRID
+========================================================= */
+
+    .dashboard-grid {
+      display: grid;
+
+      grid-template-columns: 1.5fr .85fr;
+
+      gap: 16px;
+
+      margin-top: 16px;
+    }
+
+    .card {
+      background: var(--surface);
+
+      border: 1px solid var(--line);
+
+      border-radius: 18px;
+
+      padding: 21px;
+
+      box-shadow: var(--shadow-sm);
+    }
+
+    .card-title {
+      font-family: "Space Grotesk";
+
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .card-caption {
+      color: var(--muted);
+
+      font-size: 10.5px;
+
+      margin-top: 3px;
+      margin-bottom: 15px;
+    }
+
+    .chart-wrap {
+      height: 245px;
+      position: relative;
+    }
+
+    /* =========================================================
+   SYSTEM HEALTH
+========================================================= */
+
+    .health-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .health-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      padding: 12px;
+
+      border-radius: 11px;
+
+      background: var(--surface2);
+    }
+
+    .health-left {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .health-icon {
+      width: 30px;
+      height: 30px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 8px;
+
+      background: white;
+
+      border: 1px solid var(--line);
+    }
+
+    .health-name {
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .health-description {
+      color: var(--muted);
+      font-size: 9px;
+    }
+
+    .health-status {
+      font-family: "JetBrains Mono";
+      font-size: 8px;
+      font-weight: 700;
+
+      padding: 5px 7px;
+
+      border-radius: 999px;
+
+      background: var(--teal-soft);
+      color: var(--teal-dark);
+    }
+
+    .health-status.off {
+      background: var(--red-soft);
+      color: var(--red-dark);
+    }
+
+    /* =========================================================
+   PIPELINE
+========================================================= */
+
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .pipeline-step {
+      background: var(--surface);
+
+      border: 1px solid var(--line);
+
+      border-radius: 15px;
+
+      padding: 17px;
+
+      box-shadow: var(--shadow-sm);
+    }
+
+    .step-number {
+      width: 29px;
+      height: 29px;
+
+      border-radius: 8px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      color: white;
+
+      font-family: "Space Grotesk";
+      font-size: 11px;
+      font-weight: 800;
+
+      margin-bottom: 11px;
+    }
+
+    .step-number.one {
+      background: var(--teal);
+    }
+
+    .step-number.two {
+      background: var(--blue);
+    }
+
+    .step-number.three {
+      background: var(--red);
+    }
+
+    .step-number.four {
+      background: var(--amber);
+    }
+
+    .pipeline-step h4 {
+      font-family: "Space Grotesk";
+      font-size: 13px;
+
+      margin-bottom: 5px;
+    }
+
+    .pipeline-step p {
+      color: var(--muted);
+      font-size: 10.5px;
+      line-height: 1.55;
+    }
+
+    /* =========================================================
+   RED / BLUE CONSOLE
+========================================================= */
+
+    .console-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .team-card {
+      border-radius: 18px;
+
+      padding: 22px;
+
+      box-shadow: var(--shadow-sm);
+
+      border: 1px solid var(--line);
+    }
+
+    .team-card.blue-team {
+      background: linear-gradient(145deg, #fff, #f1fffa);
+    }
+
+    .team-card.red-team {
+      background: linear-gradient(145deg, #fff, #fff3f5);
+    }
+
+    .team-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      margin-bottom: 17px;
+    }
+
+    .team-title {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .team-badge {
+      padding: 5px 8px;
+
+      border-radius: 7px;
+
+      font-family: "JetBrains Mono";
+      font-size: 8px;
+      font-weight: 700;
+
+      text-transform: uppercase;
+    }
+
+    .team-badge.blue {
+      background: var(--teal-soft);
+      color: var(--teal-dark);
+    }
+
+    .team-badge.red {
+      background: var(--red-soft);
+      color: var(--red-dark);
+    }
+
+    .team-title h3 {
+      font-family: "Space Grotesk";
+      font-size: 15px;
+    }
+
+    .live-label {
+      font-family: "JetBrains Mono";
+      font-size: 8px;
+      color: var(--muted);
+    }
+
+    /* =========================================================
+   FORM
+========================================================= */
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0 11px;
+    }
+
+    label {
+      display: block;
+
+      font-size: 8.5px;
+
+      font-weight: 700;
+
+      color: var(--muted);
+
+      text-transform: uppercase;
+
+      letter-spacing: .5px;
+
+      margin: 11px 0 5px;
+    }
+
+    input[type="number"],
+    input[type="text"],
+    select {
+      width: 100%;
+
+      border: 1px solid var(--line);
+
+      background: white;
+
+      color: var(--ink);
+
+      padding: 10px 11px;
+
+      border-radius: 9px;
+
+      outline: none;
+
+      font-family: "JetBrains Mono";
+
+      font-size: 10px;
+
+      transition: .15s;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: var(--blue);
+
+      box-shadow: 0 0 0 3px rgba(54, 84, 255, .08);
+    }
+
+    .action-btn {
+      width: 100%;
+
+      border: 0;
+
+      padding: 12px;
+
+      border-radius: 999px;
+
+      margin-top: 16px;
+
+      font-family: "Space Grotesk";
+
+      font-size: 11px;
+
+      font-weight: 800;
+
+      transition: .15s;
+    }
+
+    .action-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .action-btn.blue {
+      background: var(--teal);
+      color: #07352d;
+    }
+
+    .action-btn.red {
+      background: var(--red);
+      color: #40000a;
+    }
+
+    /* =========================================================
+   RESULT
+========================================================= */
+
+    .result {
+      margin-top: 14px;
+
+      min-height: 72px;
+
+      padding-top: 14px;
+
+      border-top: 1px solid var(--line);
+    }
+
+    .hint {
+      background: var(--surface2);
+
+      border-radius: 9px;
+
+      padding: 11px;
+
+      color: var(--muted);
+
+      font-size: 9.5px;
+
+      line-height: 1.55;
+    }
+
+    .risk-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .risk-number {
+      font-family: "Space Grotesk";
+
+      font-size: 29px;
+
+      font-weight: 800;
+    }
+
+    .risk-progress {
+      flex: 1;
+
+      height: 8px;
+
+      background: #eceef4;
+
+      border-radius: 999px;
+
+      overflow: hidden;
+    }
+
+    .risk-fill {
+      height: 100%;
+
+      border-radius: 999px;
+
+      transition: .5s;
+    }
+
+    .badge {
+      display: inline-block;
+
+      padding: 5px 9px;
+
+      border-radius: 999px;
+
+      font-family: "JetBrains Mono";
+
+      font-size: 8px;
+
+      font-weight: 700;
+
+      text-transform: uppercase;
+
+      margin-top: 9px;
+    }
+
+    .badge.fraud {
+      background: var(--red-soft);
+      color: var(--red-dark);
+    }
+
+    .badge.legit {
+      background: var(--teal-soft);
+      color: var(--teal-dark);
+    }
+
+    .narrative {
+      color: var(--muted);
+
+      font-size: 9.5px;
+
+      line-height: 1.6;
+
+      margin-top: 9px;
+    }
+
+    .spin {
+      display: inline-block;
+
+      width: 11px;
+      height: 11px;
+
+      border: 2px solid #dfe3ed;
+
+      border-top-color: var(--blue);
+
+      border-radius: 50%;
+
+      animation: spin .7s linear infinite;
+
+      margin-right: 6px;
+
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    /* =========================================================
+   SLIDER
+========================================================= */
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      accent-color: var(--red);
+    }
+
+    .intensity {
+      font-family: "JetBrains Mono";
+      font-size: 10px;
+      width: 36px;
+    }
+
+    /* =========================================================
+   ATTACK ARSENAL
+========================================================= */
+
+    .arsenal-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .attack-card {
+      background: var(--surface);
+
+      border: 1px solid var(--line);
+
+      border-radius: 15px;
+
+      padding: 17px;
+
+      box-shadow: var(--shadow-sm);
+
+      transition: .18s;
+    }
+
+    .attack-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .attack-index {
+      display: inline-flex;
+
+      align-items: center;
+      justify-content: center;
+
+      width: 27px;
+      height: 27px;
+
+      border-radius: 8px;
+
+      background: var(--red-soft);
+
+      color: var(--red-dark);
+
+      font-family: "JetBrains Mono";
+
+      font-size: 8px;
+      font-weight: 700;
+
+      margin-bottom: 10px;
+    }
+
+    .attack-card h4 {
+      font-family: "Space Grotesk";
+
+      font-size: 12.5px;
+
+      margin-bottom: 6px;
+    }
+
+    .attack-card p {
+      color: var(--muted);
+
+      font-size: 9.5px;
+
+      line-height: 1.55;
+
+      min-height: 60px;
+    }
+
+    .attack-bottom {
+      margin-top: 12px;
+
+      padding-top: 10px;
+
+      border-top: 1px solid var(--line);
+
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .attack-rate {
+      font-family: "Space Grotesk";
+
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .attack-rate.high {
+      color: var(--red-dark);
+    }
+
+    .attack-rate.low {
+      color: var(--teal-dark);
+    }
+
+    .mini-bar {
+      width: 60px;
+      height: 5px;
+
+      background: #edf0f5;
+
+      border-radius: 99px;
+
+      overflow: hidden;
+    }
+
+    .mini-fill {
+      height: 100%;
+
+      border-radius: 99px;
+
+      background: var(--red);
+    }
+
+    /* =========================================================
+   LOOP CONSOLE
+========================================================= */
+
+    .loop-console {
+      background: var(--dark);
+
+      border-radius: 18px;
+
+      overflow: hidden;
+
+      box-shadow: var(--shadow-md);
+    }
+
+    .console-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      padding: 12px 17px;
+
+      background: #0d101b;
+    }
+
+    .console-dots {
+      display: flex;
+      gap: 5px;
+    }
+
+    .console-dots span {
+      width: 8px;
+      height: 8px;
+
+      border-radius: 50%;
+    }
+
+    .console-dots span:nth-child(1) {
+      background: var(--red);
+    }
+
+    .console-dots span:nth-child(2) {
+      background: var(--amber);
+    }
+
+    .console-dots span:nth-child(3) {
+      background: var(--teal);
+    }
+
+    .console-title {
+      font-family: "JetBrains Mono";
+      color: #777d94;
+      font-size: 9px;
+      margin-left: 4px;
+    }
+
+    .console-body {
+      min-height: 255px;
+      max-height: 310px;
+
+      overflow-y: auto;
+
+      padding: 17px;
+
+      font-family: "JetBrains Mono";
+
+      font-size: 9.5px;
+
+      line-height: 2;
+
+      color: #d6d9e6;
+    }
+
+    .console-line {
+      opacity: 0;
+      animation: lineIn .25s ease forwards;
+    }
+
+    @keyframes lineIn {
+      from {
+        opacity: 0;
+        transform: translateY(3px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    .log-time {
+      color: #555b73;
+      margin-right: 6px;
+    }
+
+    .log-tag {
+      display: inline-block;
+
+      padding: 1px 6px;
+
+      border-radius: 5px;
+
+      font-size: 7px;
+
+      font-weight: 700;
+
+      margin-right: 7px;
+    }
+
+    .log-tag.sys {
+      background: rgba(255, 255, 255, .07);
+      color: #a6abc0;
+    }
+
+    .log-tag.gen {
+      background: rgba(0, 200, 150, .14);
+      color: #54ddba;
+    }
+
+    .log-tag.def {
+      background: rgba(255, 171, 0, .13);
+      color: #ffc44f;
+    }
+
+    .log-tag.atk {
+      background: rgba(255, 71, 87, .15);
+      color: #ff7986;
+    }
+
+    /* =========================================================
+   METRICS
+========================================================= */
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .metric-chart {
+      height: 270px;
+    }
+
+    /* =========================================================
+   API CONSOLE
+========================================================= */
+
+    .api-console {
+      background: #10131f;
+
+      color: #dce0ef;
+
+      border-radius: 16px;
+
+      padding: 20px;
+
+      font-family: "JetBrains Mono";
+
+      font-size: 10px;
+
+      line-height: 1.9;
+
+      overflow: auto;
+    }
+
+    .api-line {
+      color: #8f96ac;
+    }
+
+    .api-green {
+      color: #5ee0bf;
+    }
+
+    .api-blue {
+      color: #8292ff;
+    }
+
+    .api-yellow {
+      color: #ffc857;
+    }
+
+    /* =========================================================
+   QUICK ACTIONS
+========================================================= */
+
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .quick-card {
+      background: var(--surface);
+
+      border: 1px solid var(--line);
+
+      border-radius: 15px;
+
+      padding: 17px;
+
+      cursor: pointer;
+
+      transition: .15s;
+    }
+
+    .quick-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .quick-icon {
+      width: 32px;
+      height: 32px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 9px;
+
+      background: var(--blue-soft);
+
+      margin-bottom: 10px;
+    }
+
+    .quick-card h4 {
+      font-family: "Space Grotesk";
+      font-size: 12px;
+    }
+
+    .quick-card p {
+      color: var(--muted);
+      font-size: 9.5px;
+      margin-top: 4px;
+    }
+
+    /* =========================================================
+   FOOTER
+========================================================= */
+
+    .footer {
+      margin-top: 45px;
+
+      border-top: 1px solid var(--line);
+
+      padding-top: 20px;
+
+      display: flex;
+
+      justify-content: space-between;
+
+      gap: 15px;
+
+      flex-wrap: wrap;
+
+      color: var(--muted);
+
+      font-size: 9px;
+    }
+
+    .disclaimer {
+      background: white;
+
+      border: 1px solid var(--line);
+
+      padding: 13px 15px;
+
+      border-radius: 11px;
+
+      margin-bottom: 15px;
+
+      font-size: 9px;
+
+      color: var(--muted);
+
+      line-height: 1.6;
+    }
+
+    .disclaimer b {
+      color: var(--ink);
+    }
+
+    /* =========================================================
+   TOAST
+========================================================= */
+
+    .toast {
+      position: fixed;
+
+      right: 20px;
+      bottom: 20px;
+
+      background: var(--dark);
+
+      color: white;
+
+      padding: 11px 15px;
+
+      border-radius: 10px;
+
+      font-size: 10px;
+
+      box-shadow: var(--shadow-lg);
+
+      transform: translateY(20px);
+
+      opacity: 0;
+
+      pointer-events: none;
+
+      transition: .25s;
+
+      z-index: 2000;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: none;
+    }
+
+    /* =========================================================
+   RESPONSIVE
+========================================================= */
+
+    @media(max-width:1100px) {
+
+      .sidebar {
+        width: 210px;
+      }
+
+      .main {
+        margin-left: 210px;
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-visual {
+        min-height: 240px;
+      }
+
+      .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .arsenal-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .pipeline {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media(max-width:800px) {
+
+      .sidebar {
+        transform: translateX(-100%);
+        transition: .25s;
+      }
+
+      .sidebar.open {
+        transform: none;
+      }
+
+      .mobile-top {
+        display: flex;
+      }
+
+      .main {
+        margin-left: 0;
+      }
+
+      .topbar {
+        display: none;
+      }
+
+      .page {
+        padding: 80px 15px 50px;
+      }
+
+      .hero-main {
+        padding: 25px;
+      }
+
+      .hero-main h1 {
+        font-size: 35px;
+      }
+
+      .hero-stats {
+        grid-template-columns: 1fr;
+      }
+
+      .dashboard-grid,
+      .console-grid,
+      .metrics-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .pipeline {
+        grid-template-columns: 1fr;
+      }
+
+      .arsenal-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .field-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .quick-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .section-title {
+        font-size: 20px;
+      }
+    }
+
+    @media(max-width:500px) {
+
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-main h1 {
+        font-size: 31px;
+      }
+
+      .hero-main {
+        padding: 21px;
+      }
+
+      .card,
+      .team-card {
+        padding: 16px;
+      }
+    }
+
+    /* ===== DAY / NIGHT THEME ===== */
+    html[data-theme="dark"] {
+      --bg: #0B0E17;
+      --surface: #121725;
+      --surface-2: #181E2D;
+      --ink: #F4F7FF;
+      --muted: #9CA6BD;
+      --line: #252D40;
+
+      --red-soft: #3A1820;
+      --red-ink: #FF6B7A;
+
+      --teal-soft: #10352F;
+      --teal-ink: #39D9B0;
+
+      --amber-soft: #382D12;
+      --amber-ink: #FFD166;
+
+      --navy-soft: #18224A;
+
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, .25), 0 2px 8px rgba(0, 0, 0, .22);
+      --shadow-md: 0 4px 10px rgba(0, 0, 0, .25), 0 10px 30px rgba(0, 0, 0, .28);
+      --shadow-lg: 0 10px 20px rgba(0, 0, 0, .28), 0 20px 50px rgba(0, 0, 0, .35);
+    }
+
+    html[data-theme="dark"] nav {
+      background: rgba(18, 23, 37, .94);
+      border-bottom-color: var(--line);
+    }
+
+    html[data-theme="dark"] .console-head {
+      background: #080B13;
+    }
+
+    html[data-theme="dark"] input[type=text],
+    html[data-theme="dark"] input[type=number],
+    html[data-theme="dark"] select {
+      background: #181E2D;
+      color: var(--ink);
+      border-color: #252D40;
+    }
+
+    html[data-theme="dark"] input:focus,
+    html[data-theme="dark"] select:focus {
+      background: #1D2435;
+    }
+
+    html[data-theme="dark"] .mobile-menu {
+      background: var(--surface);
+      border-bottom-color: var(--line);
+    }
+
+    html[data-theme="dark"] .cta {
+      background: var(--surface);
+      color: var(--ink);
+    }
+
+    html[data-theme="dark"] .cta.primary {
+      background: #F4F7FF;
+      color: #0B0E17;
+    }
+
+    html[data-theme="dark"] .hint {
+      background: #181E2D;
+    }
+
+    html[data-theme="dark"] ::-webkit-scrollbar-thumb {
+      background: #3A4358;
+    }
+
+    /* Theme button */
+    .theme-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink);
+      padding: 8px 12px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      transition: .2s ease;
+      box-shadow: var(--shadow-sm);
+      white-space: nowrap;
+    }
+
+    .theme-toggle:hover {
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .theme-icon {
+      font-size: 15px;
+      line-height: 1;
+    }
+
+    @media(max-width:860px) {
+      .theme-toggle .theme-label {
+        display: none;
+      }
+
+      .nav-right {
+        gap: 6px;
+      }
+    }
+
+
+    /* ---------- THEME SWITCHER ---------- */
+    :root {
+      --theme-icon: "☀";
+    }
+
+    html.dark {
+      --bg: #0B0F19;
+      --surface: #121826;
+      --surface-2: #192131;
+      --ink: #F4F7FF;
+      --muted: #9BA6BC;
+      --line: #263044;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, .25), 0 2px 8px rgba(0, 0, 0, .20);
+      --shadow-md: 0 4px 10px rgba(0, 0, 0, .25), 0 10px 30px rgba(0, 0, 0, .30);
+      --shadow-lg: 0 10px 20px rgba(0, 0, 0, .30), 0 20px 50px rgba(0, 0, 0, .40);
+    }
+
+    html.dark nav {
+      background: rgba(18, 24, 38, .92);
+    }
+
+    html.dark .card,
+    html.dark .kpi,
+    html.dark .stat,
+    html.dark .pstep,
+    html.dark .arsenal-card,
+    html.dark .venn-card,
+    html.dark .disclaimer {
+      background: var(--surface);
+    }
+
+    html.dark input[type=text],
+    html.dark input[type=number],
+    html.dark select {
+      background: var(--surface-2);
+      color: var(--ink);
+    }
+
+    html.dark input:focus,
+    html.dark select:focus {
+      background: var(--surface);
+    }
+
+    html.dark .cta {
+      background: var(--surface);
+      color: var(--ink);
+    }
+
+    html.dark .cta.primary {
+      background: #F4F7FF;
+      color: #111522;
+    }
+
+    html.dark .hint {
+      background: var(--surface-2);
+    }
+
+    .theme-control {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+    }
+
+    .theme-btn {
+      width: 34px;
+      height: 30px;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: .2s;
+    }
+
+    .theme-btn:hover {
+      color: var(--ink);
+      background: var(--surface);
+    }
+
+    .theme-btn.active {
+      background: var(--ink);
+      color: var(--surface);
+      box-shadow: var(--shadow-sm);
+    }
+
+    @media(max-width:860px) {
+      .theme-control {
+        margin-right: 2px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- =========================================================
+     MOBILE TOP
+========================================================= -->
+
+  <div class="mobile-top">
+
+    <div class="mobile-brand">
+      ◉ AI DEFENSE LAB
+    </div>
+
+    <button class="menu-btn" id="menuBtn">
+      ☰
+    </button>
+
+  </div>
+
+  <!-- =========================================================
+     SIDEBAR
+========================================================= -->
+
+  <aside class="sidebar" id="sidebar">
+
+    <div class="brand">
+
+      <div class="logo">
+        <span class="r"></span>
+        <span class="t"></span>
+      </div>
+
+      AI DEFENSE LAB
+
+    </div>
+
+    <div class="sidebar-label">
+      Console
+    </div>
+
+    <nav class="nav">
+
+      <a class="nav-item active" href="#overview">
+        <span class="nav-icon">⌂</span>
+        Overview
+      </a>
+
+      <a class="nav-item" href="#fraud">
+        <span class="nav-icon">◉</span>
+        Fraud Detection
+      </a>
+
+      <a class="nav-item" href="#attack">
+        <span class="nav-icon">ϟ</span>
+        Attack Simulator
+      </a>
+
+      <a class="nav-item" href="#arsenal">
+        <span class="nav-icon">◇</span>
+        Red Team Arsenal
+      </a>
+
+      <a class="nav-item" href="#metrics">
+        <span class="nav-icon">▥</span>
+        Metrics
+      </a>
+
+      <a class="nav-item" href="#api">
+        <span class="nav-icon">⌘</span>
+        API Console
+      </a>
+
+    </nav>
+
+    <div class="sidebar-label">
+      System
+    </div>
+
+    <nav class="nav">
+
+      <a class="nav-item" href="#pipeline">
+        <span class="nav-icon">↻</span>
+        Closed Loop
+      </a>
+
+    </nav>
+
+    <div class="sidebar-bottom">
+
+      <div class="backend-mini">
+
+        <div class="backend-mini-title">
+          Backend connection
+        </div>
+
+        <div class="backend-mini-status">
+
+          <span class="status-dot" id="sideDot"></span>
+
+          <span id="sideStatus">
+            Checking API...
+          </span>
+
+        </div>
+
+        <div class="version">
+          FastAPI · :8000
+        </div>
+
+      </div>
+
+    </div>
+
+  </aside>
+
+  <!-- =========================================================
+     MAIN
+========================================================= -->
+
+  <main class="main">
+
+    <!-- TOPBAR -->
+
+    <div class="topbar">
+
+      <div class="breadcrumb">
+        AI Defense Lab
+        <span>/</span>
+        <b>Defense Command Center</b>
+      </div>
+
+      <div class="top-actions">
+
+        <div class="api-pill">
+          <span class="status-dot" id="topDot"></span>
+          <span id="topStatus">API checking</span>
+        </div>
+
+        <button class="btn-small" onclick="refreshHealth()">
+          ↻ Refresh
+        </button>
+
+        <button class="btn-small" onclick="scrollToDemo()">
+          + New Analysis
+        </button>
+
+      </div>
+
+    </div>
+
+    <!-- PAGE -->
+
+    <div class="page">
+
+      <!-- =========================================================
+     HERO
+========================================================= -->
+
+      <section class="hero" id="overview">
+
+        <div class="hero-main">
+
+          <div class="eyebrow">
+            MASTERCARD AI DEFENSE LAB · RED / BLUE TEAM
+          </div>
+
+          <h1>
+            Build the
+            <span class="red">attack</span>.
+            <br>
+            Build the
+            <span class="teal">defense</span>.
+          </h1>
+
+          <p class="hero-description">
+
+            A closed-loop Red-Team / Blue-Team payment security system
+            that generates synthetic fraud, simulates adversarial attacks,
+            detects suspicious transactions and learns from what it missed.
+
+          </p>
+
+          <div class="hero-actions">
+
+            <button class="primary-btn" onclick="scrollToDemo()">
+              Try Live Defense Console →
+            </button>
+
+            <button class="secondary-btn" onclick="document.getElementById('arsenal').scrollIntoView()">
+              View Attack Arsenal
+            </button>
+
+          </div>
+
+          <div class="hero-stats">
+
+            <div class="hero-stat">
+              <div class="value">0.972</div>
+              <div class="label">Test ROC-AUC</div>
+            </div>
+
+            <div class="hero-stat">
+              <div class="value">7</div>
+              <div class="label">Attack Families</div>
+            </div>
+
+            <div class="hero-stat">
+              <div class="value">14.7 → 79.6%</div>
+              <div class="label">Detection After Retrain</div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="hero-visual">
+
+          <div class="venn">
+
+            <div class="vlabel red">
+              Red Team
+            </div>
+
+            <div class="vlabel teal">
+              Blue Team
+            </div>
+
+            <div class="vcircle red"></div>
+
+            <div class="vcircle teal"></div>
+
+            <div class="vlabel loop">
+              CLOSED LOOP
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- =========================================================
+     KPI
+========================================================= -->
+
+      <section class="section">
+
+        <div class="section-head">
+
+          <div>
+            <div class="section-title">
+              Defense Command Center
+            </div>
+
+            <div class="section-sub">
+              Payment fraud detection, adversarial testing and model resilience.
+            </div>
+          </div>
+
+        </div>
+
+        <div class="kpi-grid">
+
+          <div class="kpi">
+
+            <div class="kpi-top">
+
+              <div class="kpi-icon teal">
+                ✓
+              </div>
+
+              <div class="kpi-change">
+                TEST
+              </div>
+
+            </div>
+
+            <div class="number">
+              96.99%
+            </div>
+
+            <div class="caption">
+              Test Accuracy
+            </div>
+
+          </div>
+
+          <div class="kpi">
+
+            <div class="kpi-top">
+
+              <div class="kpi-icon red">
+                !
+              </div>
+
+              <div class="kpi-change">
+                FRAUD
+              </div>
+
+            </div>
+
+            <div class="number">
+              66.2%
+            </div>
+
+            <div class="caption">
+              Fraud Recall
+            </div>
+
+          </div>
+
+          <div class="kpi">
+
+            <div class="kpi-top">
+
+              <div class="kpi-icon blue">
+                ◈
+              </div>
+
+              <div class="kpi-change">
+                MODEL
+              </div>
+
+            </div>
+
+            <div class="number">
+              0.423
+            </div>
+
+            <div class="caption">
+              Test PR-AUC
+            </div>
+
+          </div>
+
+          <div class="kpi">
+
+            <div class="kpi-top">
+
+              <div class="kpi-icon amber">
+                ↑
+              </div>
+
+              <div class="kpi-change">
+                +541%
+              </div>
+
+            </div>
+
+            <div class="number">
+              79.6%
+            </div>
+
+            <div class="caption">
+              Closed Loop Detection
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- =========================================================
+     OVERVIEW
+========================================================= -->
+
+      <section class="section">
+
+        <div class="dashboard-grid">
+
+          <div class="card">
+
+            <div class="card-title">
+              Threat Activity
+            </div>
+
+            <div class="card-caption">
+              Synthetic session activity visualization · last 12 hours
+            </div>
+
+            <div class="chart-wrap">
+              <canvas id="activityChart"></canvas>
+            </div>
+
+          </div>
+
+          <div class="card">
+
+            <div class="card-title">
+              System Health
+            </div>
+
+            <div class="card-caption">
+              Connected backend services
+            </div>
+
+            <div class="health-list">
+
+              <div class="health-item">
+
+                <div class="health-left">
+
+                  <div class="health-icon">
+                    ⚡
+                  </div>
+
+                  <div>
+                    <div class="health-name">
+                      FastAPI
+                    </div>
+
+                    <div class="health-description">
+                      Prediction & simulation API
+                    </div>
+                  </div>
+
+                </div>
+
+                <div class="health-status" id="healthFastAPI">
+                  CHECKING
+                </div>
+
+              </div>
+
+              <div class="health-item">
+
+                <div class="health-left">
+
+                  <div class="health-icon">
+                    ◉
+                  </div>
+
+                  <div>
+                    <div class="health-name">
+                      ML Model
+                    </div>
+
+                    <div class="health-description">
+                      Fraud scoring engine
+                    </div>
+                  </div>
+
+                </div>
+
+                <div class="health-status" id="healthModel">
+                  READY
+                </div>
+
+              </div>
+
+              <div class="health-item">
+
+                <div class="health-left">
+
+                  <div class="health-icon">
+                    ◇
+                  </div>
+
+                  <div>
+                    <div class="health-name">
+                      OpenAPI
+                    </div>
+
+                    <div class="health-description">
+                      API contract available
+                    </div>
+                  </div>
+
+                </div>
+
+                <div class="health-status">
+                  ONLINE
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- =========================================================
+     PIPELINE
+========================================================= -->
+
+      <section class="section" id="pipeline">
+
+        <div class="section-head">
+
+          <div>
+
+            <div class="section-title">
+              Closed-Loop Architecture
+            </div>
+
+            <div class="section-sub">
+              Generate → defend → attack → learn
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="pipeline">
+
+          <div class="pipeline-step">
+
+            <div class="step-number one">
+              01
+            </div>
+
+            <h4>
+              Synthetic Transactions
+            </h4>
+
+            <p>
+              120k labeled payment events with 1.2% synthetic fraud prevalence.
+            </p>
+
+          </div>
+
+          <div class="pipeline-step">
+
+            <div class="step-number two">
+              02
+            </div>
+
+            <h4>
+              Blue-Team Detector
+            </h4>
+
+            <p>
+              XGBoost, Random Forest and Isolation Forest models compete for best validation performance.
+            </p>
+
+          </div>
+
+          <div class="pipeline-step">
+
+            <div class="step-number three">
+              03
+            </div>
+
+            <h4>
+              Red-Team Simulator
+            </h4>
+
+            <p>
+              Seven adaptive adversarial attack families target detector weaknesses.
+            </p>
+
+          </div>
+
+          <div class="pipeline-step">
+
+            <div class="step-number four">
+              04
+            </div>
+
+            <h4>
+              Adversarial Retrain
+            </h4>
+
+            <p>
+              Missed attacks return to training and the detector is re-fit.
+            </p>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- =========================================================
+     BLUE / RED TEAM
+========================================================= -->
+
+      <section class="section" id="fraud">
+
+        <div class="section-head">
+
+          <div>
+
+            <div class="section-title">
+              Live Defense Command Center
+            </div>
+
+            <div class="section-sub">
+              Run actual requests against your local FastAPI backend.
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="console-grid">
+
+          <!-- BLUE TEAM -->
+
+          <div class="team-card blue-team">
+
+            <div class="team-header">
+
+              <div class="team-title">
+
+                <span class="team-badge blue">
+                  BLUE TEAM
+                </span>
+
+                <h3>
+                  Score Transaction
+                </h3>
+
+              </div>
+
+              <div class="live-label">
+                POST /predict
+              </div>
+
+            </div>
+
+            <div class="field-grid">
+
+              <div>
+
+                <label>
+                  Amount ₹
+                </label>
+
+                <input type="number" id="p_amount" value="45000">
+
+              </div>
+
+              <div>
+
+                <label>
+                  Baseline Spend ₹
+                </label>
+
+                <input type="number" id="p_baseline" value="3000">
+
+              </div>
+
+            </div>
+
+            <div class="field-grid">
+
+              <div>
+
+                <label>
+                  Merchant Category
+                </label>
+
+                <select id="p_merchant">
+
+                  <option value="crypto_exchange" selected>
+                    crypto_exchange
+                  </option>
+
+                  <option value="grocery">
+                    grocery
+                  </option>
+
+                  <option value="gambling">
+                    gambling
+                  </option>
+
+                  <option value="jewelry">
+                    jewelry
+                  </option>
+
+                  <option value="electronics">
+                    electronics
+                  </option>
+
+                  <option value="dining">
+                    dining
+                  </option>
+
+                </select>
+
+              </div>
+
+              <div>
+
+                <label>
+                  Device
+                </label>
+
+                <select id="p_device">
+
+                  <option value="web_browser">
+                    web_browser
+                  </option>
+
+                  <option value="mobile_app">
+                    mobile_app
+                  </option>
+
+                  <option value="pos_terminal">
+                    pos_terminal
+                  </option>
+
+                  <option value="atm">
+                    atm
+                  </option>
+
+                </select>
+
+              </div>
+
+            </div>
+
+            <div class="field-grid">
+
+              <div>
+
+                <label>
+                  Geo Distance KM
+                </label>
+
+                <input type="number" id="p_geo" value="320">
+
+              </div>
+
+              <div>
+
+                <label>
+                  Txn Frequency 24h
+                </label>
+
+                <input type="number" id="p_freq" value="9">
+
+              </div>
+
+            </div>
+
+            <div class="field-grid">
+
+              <div>
+
+                <label>
+                  Failed Txns 24h
+                </label>
+
+                <input type="number" id="p_failed" value="3">
+
+              </div>
+
+              <div>
+
+                <label>
+                  Hour 0–23
+                </label>
+
+                <input type="number" id="p_hour" value="2" min="0" max="23">
+
+              </div>
+
+            </div>
+
+            <button class="action-btn blue" id="scoreBtn">
+              Run Blue-Team Detector
+            </button>
+
+            <div class="result" id="scoreResult">
+
+              <div class="hint">
+                Enter transaction data and run the detector to receive fraud probability, risk score and explanation.
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- RED TEAM -->
+
+          <div class="team-card red-team" id="attack">
+
+            <div class="team-header">
+
+              <div class="team-title">
+
+                <span class="team-badge red">
+                  RED TEAM
+                </span>
+
+                <h3>
+                  Attack Simulator
+                </h3>
+
+              </div>
+
+              <div class="live-label">
+                POST /simulate-attack
+              </div>
+
+            </div>
+
+            <label>
+              Attack Family
+            </label>
+
+            <select id="a_type">
+
+              <option value="account_takeover">
+                account_takeover
+              </option>
+
+              <option value="velocity_attack">
+                velocity_attack
+              </option>
+
+              <option value="amount_manipulation">
+                amount_manipulation
+              </option>
+
+              <option value="merchant_switching">
+                merchant_switching
+              </option>
+
+              <option value="geo_evasion" selected>
+                geo_evasion
+              </option>
+
+              <option value="low_and_slow">
+                low_and_slow
+              </option>
+
+              <option value="behavioral_mimicry">
+                behavioral_mimicry
+              </option>
+
+            </select>
+
+            <label>
+              Attack Intensity
+            </label>
+
+            <div class="slider-row">
+
+              <input type="range" id="a_intensity" min="0" max="100" value="65">
+
+              <span class="intensity" id="a_intensity_val">
+                0.65
+              </span>
+
+            </div>
+
+            <div class="hint" style="margin-top:13px">
+
+              Attack begins from a clean synthetic ₹1,200 grocery transaction and modifies its behavior according to the
+              selected attack family.
+
+            </div>
+
+            <button class="action-btn red" id="attackBtn">
+              Craft & Detect Attack
+            </button>
+
+            <div class="result" id="attackResult">
+
+              <div class="hint">
+                Select an attack family, tune intensity and launch the adversarial simulation.
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- =========================================================
+     QUICK ACTIONS
+========================================================= -->
+
+      <section class="section">
+
+        <div class="section-head">
+
+          <div>
+
+            <div class="section-title">
+              Quick Actions
+            </div>
+
+            <div class="section-sub">
+              Run real requests against your local API.
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="quick-grid">
+
+          <div class="quick-card" onclick="scrollToDemo()">
+
+            <div class="quick-icon">
+              ◉
+            </div>
+
+            <h4>
+              Transaction Analyzer
+            </h4>
+
+            <p>
+              Score a payment and inspect the Blue-Team detector response.
+            </p>
+
+          </div>
+
+          <div class="quick-card" onclick="document.getElementById('attack').scrollIntoView()">
+
+            <div class="quick-icon">
+              ϟ
+            </div>
+
+            <h4>
+              Attack Simulator
+            </h4>
+
+            <p>
+              Generate an adversarial payment and test whether the detector catches it.
+            </p>
+
+          </div>
+
+          <div class="quick-card" onclick="document.getElementById('metrics').scrollIntoView()">
+
+            <div class="quick-icon">
+              ▥
+            </div>
+
+            <h4>
+              Model Metrics
+            </h4>
+
+            <p>
+              Review attack detection, closed-loop improvement and model signals.
+            </p>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- =========================================================
+     ATTACK ARSENAL
+========================================================= -->
+
+      <section class="section" id="arsenal">
+
+        <div class="section-head">
+
+          <div>
+
+            <div class="section-title">
+              Attack Arsenal — 7 Families
+            </div>
+
+            <div class="section-sub">
+              Synthetic adversarial strategies used to stress-test the Blue-Team detector.
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="arsenal-grid" id="arsenalGrid"></div>
+
+      </section>
+
+      <!-- =========================================================
+     METRICS
+========================================================= -->
+
+      <section class="section" id="metrics">
+
+        <div class="section-head">
+
+          <div>
+
+            <div class="section-title">
+              Model Evaluation
+            </div>
+
+            <div class="section-sub">
+              Results represented from the project's training run.
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="metrics-grid">
+
+          <div class="card">
+
+            <div class="card-title">
+              Detection Rate by Attack Type
+            </div>
+
+            <div class="card-caption">
+              Fresh Red-Team batch before adversarial retraining.
+            </div>
+
+            <div class="metric-chart">
+              <canvas id="attackChart"></canvas>
+            </div>
+
+          </div>
+
+          <div class="card">
+
+            <div class="card-title">
+              Closed-Loop Impact
+            </div>
+
+            <div class="card-caption">
+              Same attack mix before vs after retraining.
+            </div>
+
+            <div class="metric-chart">
+              <canvas id="loopChart"></canvas>
+            </div>
+
+          </div>
+
+          <div class="card">
+
+            <div class="card-title">
+              ROC Curve
+            </div>
+
+            <div class="card-caption">
+              XGBoost · AUC = 0.972
+            </div>
+
+            <div class="metric-chart">
+              <canvas id="rocChart"></canvas>
+            </div>
+
+          </div>
+
+          <div class="card">
+
+            <div class="card-title">
+              Top Risk Signals
+            </div>
+
+            <div class="card-caption">
+              Feature importance from the held-out evaluation.
+            </div>
+
+            <div class="metric-chart">
+              <canvas id="fiChart"></canvas>
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- =========================================================
+     CLOSED LOOP
+========================================================= -->
+
+      <section class="section">
+
+        <div class="section-head">
+
+          <div>
+
+            <div class="section-title">
+              Closed Loop — Live Narration
+            </div>
+
+            <div class="section-sub">
+              Generate → attack → detect → learn.
+            </div>
+
+          </div>
+
+          <button class="secondary-btn" id="replayBtn">
+            ↻ Replay Cycle
+          </button>
+
+        </div>
+
+        <div class="loop-console">
+
+          <div class="console-header">
+
+            <div class="console-dots">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+
+            <div class="console-title">
+              closed_loop.log
+            </div>
+
+          </div>
+
+          <div class="console-body" id="consoleBody"></div>
+
+        </div>
+
+      </section>
+
+      <!-- =========================================================
+     API CONSOLE
+========================================================= -->
+
+      <section class="section" id="api">
+
+        <div class="section-head">
+
+          <div>
+
+            <div class="section-title">
+              API Console
+            </div>
+
+            <div class="section-sub">
+              FastAPI endpoints used by the frontend.
+            </div>
+
+          </div>
+
+        </div>
+
+        <div class="api-console">
+
+          <div class="api-line">
+            $ defense-lab status
+          </div>
+
+          <div>
+            backend:
+            <span class="api-green">
+              http://localhost:8000
+            </span>
+          </div>
+
+          <br>
+
+          <div>
+            GET
+            <span class="api-blue">
+              /health
+            </span>
+          </div>
+
+          <div>
+            POST
+            <span class="api-blue">
+              /predict
+            </span>
+          </div>
+
+          <div>
+            POST
+            <span class="api-blue">
+              /simulate-attack
+            </span>
+          </div>
+
+          <br>
+
+          <div>
+            model:
+            <span class="api-yellow">
+              XGBoost / Blue-Team detector
+            </span>
+          </div>
+
+          <div>
+            red_team:
+            <span class="api-yellow">
+              7 adaptive attack families
+            </span>
+          </div>
+
+          <div>
+            data:
+            <span class="api-yellow">
+              synthetic research dataset
+            </span>
+          </div>
+
+          <br>
+
+          <div class="api-line">
+            status:
+            <span id="apiConsoleStatus">
+              checking...
+            </span>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- =========================================================
+     FOOTER
+========================================================= -->
+
+      <footer class="footer">
+
+        <div class="disclaimer">
+
+          <b>Synthetic data notice.</b>
+
+          All transactions, customers and attack traces shown in this prototype
+          are synthetically generated for research/demo purposes.
+
+          No real Mastercard cardholder information or production fraud signals
+          are used or claimed anywhere in this project.
+
+          Risk thresholds are configurable demonstration thresholds and are not
+          Mastercard production thresholds.
+
+        </div>
+
+        <div style="width:100%;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+
+          <span>
+            AI Defense Lab — Payment Security
+          </span>
+
+          <span class="mono">
+            FastAPI · XGBoost · scikit-learn · SHAP
+          </span>
+
+        </div>
+
+      </footer>
+
+    </div>
+
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- =========================================================
+     JAVASCRIPT
+========================================================= -->
+
+  <script>
+
+    /* =========================================================
+       CONFIG
+    ========================================================= */
+
+
+    const themeToggle = document.getElementById("themeToggle");
+    const themeIcon = document.getElementById("themeIcon");
+    const themeLabel = document.getElementById("themeLabel");
+
+    function applyTheme(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+
+      const dark = theme === "dark";
+
+      themeIcon.textContent = dark ? "☾" : "☀";
+      themeLabel.textContent = dark ? "Dark" : "Light";
+
+      themeToggle.setAttribute(
+        "aria-label",
+        dark ? "Switch to light theme" : "Switch to dark theme"
+      );
+
+      themeToggle.title =
+        dark ? "Switch to light theme" : "Switch to dark theme";
+
+      localStorage.setItem("ai-defense-theme", theme);
+    }
+
+    const savedTheme = localStorage.getItem("ai-defense-theme");
+    applyTheme(savedTheme === "dark" ? "dark" : "light");
+
+    themeToggle.addEventListener("click", () => {
+      const current =
+        document.documentElement.getAttribute("data-theme");
+
+      applyTheme(current === "dark" ? "light" : "dark");
+    });
+
+    const API_BASE = "http://localhost:8000";
+
+
+    /* =========================================================
+       MOBILE MENU
+    ========================================================= */
+
+    const menuBtn = document.getElementById("menuBtn");
+    const sidebar = document.getElementById("sidebar");
+
+    menuBtn.addEventListener("click", () => {
+      sidebar.classList.toggle("open");
+    });
+
+    document.querySelectorAll(".nav-item").forEach(item => {
+
+      item.addEventListener("click", () => {
+
+        document
+          .querySelectorAll(".nav-item")
+          .forEach(x => x.classList.remove("active"));
+
+        item.classList.add("active");
+
+        sidebar.classList.remove("open");
+
+      });
+
+    });
+
+
+    /* =========================================================
+       TOAST
+    ========================================================= */
+
+    let toastTimer;
+
+    function showToast(message) {
+
+      const toast = document.getElementById("toast");
+
+      toast.textContent = message;
+
+      toast.classList.add("show");
+
+      clearTimeout(toastTimer);
+
+      toastTimer = setTimeout(() => {
+        toast.classList.remove("show");
+      }, 2600);
+
+    }
+
+
+    /* =========================================================
+       NAV HELPERS
+    ========================================================= */
+
+    function scrollToDemo() {
+
+      document
+        .getElementById("fraud")
+        .scrollIntoView({
+          behavior: "smooth"
+        });
+
+    }
+
+
+    /* =========================================================
+       HEALTH CHECK
+    ========================================================= */
+
+    async function refreshHealth() {
+
+      const sideDot =
+        document.getElementById("sideDot");
+
+      const topDot =
+        document.getElementById("topDot");
+
+      const sideStatus =
+        document.getElementById("sideStatus");
+
+      const topStatus =
+        document.getElementById("topStatus");
+
+      const healthFastAPI =
+        document.getElementById("healthFastAPI");
+
+      const apiConsoleStatus =
+        document.getElementById("apiConsoleStatus");
+
+      try {
+
+        const response = await fetch(
+          API_BASE + "/health",
+          {
+            method: "GET",
+            signal: AbortSignal.timeout(3000)
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Backend error");
+        }
+
+        const data = await response.json();
+
+        const online =
+          data.status === "ok";
+
+        if (!online) {
+          throw new Error("Backend not ready");
+        }
+
+        sideDot.className =
+          "status-dot online";
+
+        topDot.className =
+          "status-dot online";
+
+        sideStatus.textContent =
+          "API online";
+
+        topStatus.textContent =
+          "API online";
+
+        healthFastAPI.textContent =
+          "ONLINE";
+
+        healthFastAPI.classList.remove("off");
+
+        apiConsoleStatus.textContent =
+          "ONLINE";
+
+        document
+          .getElementById("healthModel")
+          .textContent = "READY";
+
+      }
+      catch (error) {
+
+        sideDot.className =
+          "status-dot offline";
+
+        topDot.className =
+          "status-dot offline";
+
+        sideStatus.textContent =
+          "API offline";
+
+        topStatus.textContent =
+          "API offline";
+
+        healthFastAPI.textContent =
+          "OFFLINE";
+
+        healthFastAPI.classList.add("off");
+
+        apiConsoleStatus.textContent =
+          "OFFLINE";
+
+        document
+          .getElementById("healthModel")
+          .textContent = "UNAVAILABLE";
+
+        document
+          .getElementById("healthModel")
+          .classList.add("off");
+
+      }
+
+    }
+
+    refreshHealth();
+
+    setInterval(refreshHealth, 15000);
+
+
+    /* =========================================================
+       CHART DEFAULTS
+    ========================================================= */
+
+    if (typeof Chart !== "undefined") {
+
+      Chart.defaults.font.family =
+        "Inter";
+
+      Chart.defaults.color =
+        "#6c7287";
+
+      Chart.defaults.borderColor =
+        "#e8ebf2";
+
+    }
+
+
+    /* =========================================================
+       ACTIVITY CHART
+    ========================================================= */
+
+    function createActivityChart() {
+
+      if (typeof Chart === "undefined")
+        return;
+
+      const canvas =
+        document.getElementById("activityChart");
+
+      if (!canvas)
+        return;
+
+      new Chart(canvas, {
+
+        type: "line",
+
+        data: {
+
+          labels: [
+            "1h", "2h", "3h", "4h",
+            "5h", "6h", "7h", "8h",
+            "9h", "10h", "11h", "12h"
+          ],
+
+          datasets: [
+
+            {
+              label: "Threat events",
+
+              data: [
+                8, 13, 10, 19,
+                15, 25, 18, 31,
+                24, 38, 29, 43
+              ],
+
+              borderColor: "#ff4757",
+
+              backgroundColor: "rgba(255,71,87,.08)",
+
+              fill: true,
+
+              tension: .35,
+
+              pointRadius: 2,
+
+              borderWidth: 2
+            },
+
+            {
+              label: "Detected",
+
+              data: [
+                6, 11, 9, 17,
+                12, 21, 16, 27,
+                21, 33, 26, 37
+              ],
+
+              borderColor: "#00c896",
+
+              backgroundColor: "transparent",
+
+              tension: .35,
+
+              pointRadius: 2,
+
+              borderWidth: 2
+            }
+
+          ]
+
+        },
+
+        options: {
+
+          responsive: true,
+
+          maintainAspectRatio: false,
+
+          plugins: {
+            legend: {
+              labels: {
+                boxWidth: 8,
+                font: {
+                  size: 9
+                }
+              }
+            }
+          },
+
+          scales: {
+
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: "#edf0f5"
+              }
+            },
+
+            x: {
+              grid: {
+                display: false
+              }
+            }
+
+          }
+
+        }
+
+      });
+
+    }
+
+
+    /* =========================================================
+       ATTACK DATA
+    ========================================================= */
+
+    const attackData = [
+
+      {
+        n: "01",
+        name: "Amount Manipulation",
+        mech: "Keeps transaction amounts just below common threshold bands to avoid amount-based alerting.",
+        evasion: 83.4
+      },
+
+      {
+        n: "02",
+        name: "Velocity Attack",
+        mech: "Creates rapid transaction bursts across merchants and devices to exploit velocity detection gaps.",
+        evasion: 80.3
+      },
+
+      {
+        n: "03",
+        name: "Merchant Switching",
+        mech: "Spreads suspicious spending across multiple merchant categories so no single signal spikes.",
+        evasion: 88.3
+      },
+
+      {
+        n: "04",
+        name: "Geographic Evasion",
+        mech: "Keeps transaction location within a plausible commute radius instead of an obvious geographic jump.",
+        evasion: 98.7
+      },
+
+      {
+        n: "05",
+        name: "Account Takeover",
+        mech: "Combines sudden device, location, amount and velocity changes to imitate an ATO fingerprint.",
+        evasion: 18.9
+      },
+
+      {
+        n: "06",
+        name: "Low-and-Slow Fraud",
+        mech: "Uses many small transactions that remain below the victim's usual spending pattern.",
+        evasion: 99.4
+      },
+
+      {
+        n: "07",
+        name: "Behavioral Mimicry",
+        mech: "Crafts transactions to resemble the victim's historical spending behavior.",
+        evasion: 99.6
+      }
+
+    ];
+
+
+    /* =========================================================
+       RENDER ARSENAL
+    ========================================================= */
+
+    function renderArsenal() {
+
+      const grid =
+        document.getElementById("arsenalGrid");
+
+      if (!grid)
+        return;
+
+      grid.innerHTML = "";
+
+      attackData.forEach(a => {
+
+        const card =
+          document.createElement("div");
+
+        card.className =
+          "attack-card";
+
+        const rateClass =
+          a.evasion > 60
+            ? "high"
+            : "low";
+
+        card.innerHTML = `
+
+      <span class="attack-index">
+        ${a.n}
+      </span>
+
+      <h4>
+        ${a.name}
+      </h4>
+
+      <p>
+        ${a.mech}
+      </p>
+
+      <div class="attack-bottom">
+
+        <div>
+          <div style="font-size:8px;color:#6c7287">
+            EVASION RATE
+          </div>
+
+          <div class="attack-rate ${rateClass}">
+            ${a.evasion}%
+          </div>
+        </div>
+
+        <div class="mini-bar">
+          <div
+            class="mini-fill"
+            style="width:${a.evasion}%"
+          ></div>
+        </div>
+
+      </div>
+
+    `;
+
+        grid.appendChild(card);
+
+      });
+
+    }
+
+
+    /* =========================================================
+       METRIC CHARTS
+    ========================================================= */
+
+    function createMetricCharts() {
+
+      if (typeof Chart === "undefined")
+        return;
+
+
+      /* ATTACK CHART */
+
+      new Chart(
+        document.getElementById("attackChart"),
+        {
+
+          type: "bar",
+
+          data: {
+
+            labels: [
+              "Behavioral Mimicry",
+              "Low & Slow",
+              "Geo Evasion",
+              "Merchant Switching",
+              "Amount Manipulation",
+              "Velocity Attack",
+              "Account Takeover"
+            ],
+
+            datasets: [{
+
+              data: [
+                0.4,
+                0.6,
+                1.3,
+                11.7,
+                16.6,
+                19.7,
+                81.1
+              ],
+
+              backgroundColor: [
+                "#ff4757",
+                "#ff4757",
+                "#ff4757",
+                "#ff4757",
+                "#ff4757",
+                "#ff4757",
+                "#00c896"
+              ],
+
+              borderRadius: 6
+
+            }]
+
+          },
+
+          options: {
+
+            indexAxis: "y",
+
+            responsive: true,
+
+            maintainAspectRatio: false,
+
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+
+            scales: {
+
+              x: {
+                max: 100,
+
+                ticks: {
+                  callback: v => v + "%"
+                },
+
+                grid: {
+                  color: "#edf0f5"
+                }
+              },
+
+              y: {
+                grid: {
+                  display: false
+                },
+
+                ticks: {
+                  font: {
+                    size: 9
+                  }
+                }
+              }
+
+            }
+
+          }
+
+        }
+      );
+
+
+      /* LOOP */
+
+      new Chart(
+        document.getElementById("loopChart"),
+        {
+
+          type: "bar",
+
+          data: {
+
+            labels: [
+              "Before Retrain",
+              "After Retrain"
+            ],
+
+            datasets: [{
+
+              data: [
+                14.7,
+                79.6
+              ],
+
+              backgroundColor: [
+                "#ff4757",
+                "#00c896"
+              ],
+
+              borderRadius: 8
+
+            }]
+
+          },
+
+          options: {
+
+            responsive: true,
+
+            maintainAspectRatio: false,
+
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+
+            scales: {
+
+              y: {
+                max: 100,
+
+                ticks: {
+                  callback: v => v + "%"
+                },
+
+                grid: {
+                  color: "#edf0f5"
+                }
+              },
+
+              x: {
+                grid: {
+                  display: false
+                }
+              }
+
+            }
+
+          }
+
+        }
+      );
+
+
+      /* ROC */
+
+      const rocPts = [
+
+        [0, 0],
+        [.01, .35],
+        [.03, .55],
+        [.06, .68],
+        [.10, .78],
+        [.18, .86],
+        [.30, .91],
+        [.50, .95],
+        [.75, .98],
+        [1, 1]
+
+      ];
+
+
+      new Chart(
+        document.getElementById("rocChart"),
+        {
+
+          type: "line",
+
+          data: {
+
+            labels:
+              rocPts.map(p => p[0]),
+
+            datasets: [
+
+              {
+
+                label: "XGBoost AUC 0.972",
+
+                data:
+                  rocPts.map(p => p[1]),
+
+                borderColor: "#00c896",
+
+                backgroundColor:
+                  "rgba(0,200,150,.08)",
+
+                fill: true,
+
+                tension: .3,
+
+                pointRadius: 0,
+
+                borderWidth: 2.5
+
+              },
+
+              {
+
+                label: "Random Guess",
+
+                data:
+                  rocPts.map(p => p[0]),
+
+                borderColor: "#c7cad6",
+
+                borderDash: [4, 4],
+
+                pointRadius: 0
+
+              }
+
+            ]
+
+          },
+
+          options: {
+
+            responsive: true,
+
+            maintainAspectRatio: false,
+
+            plugins: {
+              legend: {
+                labels: {
+                  boxWidth: 8,
+                  font: {
+                    size: 8
+                  }
+                }
+              }
+            },
+
+            scales: {
+
+              x: {
+                title: {
+                  display: true,
+                  text: "FPR"
+                }
+              },
+
+              y: {
+                title: {
+                  display: true,
+                  text: "TPR"
+                }
+              }
+
+            }
+
+          }
+
+        }
+      );
+
+
+      /* FEATURE IMPORTANCE */
+
+      new Chart(
+        document.getElementById("fiChart"),
+        {
+
+          type: "bar",
+
+          data: {
+
+            labels: [
+
+              "Crypto exchange",
+              "Merchant risk",
+              "Customer risk appetite",
+              "Failed txns",
+              "Amount / baseline",
+              "Txn frequency"
+
+            ],
+
+            datasets: [{
+
+              data: [
+                14.2,
+                11.6,
+                9.3,
+                7.7,
+                6.1,
+                6.0
+              ],
+
+              backgroundColor: "#3654ff",
+
+              borderRadius: 6
+
+            }]
+
+          },
+
+          options: {
+
+            indexAxis: "y",
+
+            responsive: true,
+
+            maintainAspectRatio: false,
+
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+
+            scales: {
+
+              x: {
+                ticks: {
+                  callback: v => v + "%"
+                }
+              },
+
+              y: {
+                grid: {
+                  display: false
+                },
+
+                ticks: {
+                  font: {
+                    size: 8
+                  }
+                }
+              }
+
+            }
+
+          }
+
+        }
+
+      );
+
+    }
+
+
+    /* =========================================================
+       CONSOLE LOG
+    ========================================================= */
+
+    const logScript = [
+
+      {
+        tag: "sys",
+        t: "00.00s",
+        text: "closed-loop cycle started · seed=42"
+      },
+
+      {
+        tag: "gen",
+        t: "00.41s",
+        text: "generated 120,000 synthetic transactions · fraud rate 1.20%"
+      },
+
+      {
+        tag: "def",
+        t: "04.10s",
+        text: "trained xgboost blue-team detector · val PR-AUC 0.339"
+      },
+
+      {
+        tag: "def",
+        t: "04.30s",
+        text: "test set: ROC-AUC 0.972 · recall 66.2% · precision 24.8%"
+      },
+
+      {
+        tag: "atk",
+        t: "05.02s",
+        text: "red-team round 1 → generated 3,000 attacks across 7 families"
+      },
+
+      {
+        tag: "atk",
+        t: "05.55s",
+        text: "scored round 1 → detection rate 14.7% on fresh attacks"
+      },
+
+      {
+        tag: "atk",
+        t: "05.61s",
+        text: "adapting strategy weights → up-weighting behavioral_mimicry, low_and_slow"
+      },
+
+      {
+        tag: "atk",
+        t: "06.20s",
+        text: "red-team round 2 → generated 3,000 adapted attacks"
+      },
+
+      {
+        tag: "sys",
+        t: "06.90s",
+        text: "collected 5,046 missed attacks → adversarial training set"
+      },
+
+      {
+        tag: "def",
+        t: "11.40s",
+        text: "retraining blue-team detector on augmented data..."
+      },
+
+      {
+        tag: "atk",
+        t: "12.10s",
+        text: "round 3 → fresh unseen attacks scored before vs after retrain"
+      },
+
+      {
+        tag: "def",
+        t: "12.35s",
+        text: "detection rate after retrain: 79.6% (+541% relative)"
+      },
+
+      {
+        tag: "sys",
+        t: "12.40s",
+        text: "cycle complete — models + metrics saved to outputs/"
+      }
+
+    ];
+
+
+    let consoleTimer = null;
+
+
+    function playConsole() {
+
+      const body =
+        document.getElementById("consoleBody");
+
+      body.innerHTML = "";
+
+      if (consoleTimer)
+        clearTimeout(consoleTimer);
+
+      let index = 0;
+
+      function next() {
+
+        if (index >= logScript.length)
+          return;
+
+        const line =
+          logScript[index];
+
+        const div =
+          document.createElement("div");
+
+        div.className =
+          "console-line";
+
+        div.innerHTML = `
+
+      <span class="log-time">
+        [${line.t}]
+      </span>
+
+      <span class="log-tag ${line.tag}">
+        ${line.tag}
+      </span>
+
+      ${line.text}
+
+    `;
+
+        body.appendChild(div);
+
+        body.scrollTop =
+          body.scrollHeight;
+
+        index++;
+
+        consoleTimer =
+          setTimeout(next, 420);
+
+      }
+
+      next();
+
+    }
+
+
+    /* =========================================================
+       INTENSITY
+    ========================================================= */
+
+    document
+      .getElementById("a_intensity")
+      .addEventListener("input", e => {
+
+        document
+          .getElementById("a_intensity_val")
+          .textContent =
+          (
+            Number(e.target.value) / 100
+          ).toFixed(2);
+
+      });
+
+
+    /* =========================================================
+       RISK COLOR
+    ========================================================= */
+
+    function riskColor(score) {
+
+      if (score <= 30)
+        return "#00c896";
+
+      if (score <= 60)
+        return "#ffab00";
+
+      if (score <= 80)
+        return "#ff7b47";
+
+      return "#ff4757";
+
+    }
+
+
+    /* =========================================================
+       BLUE TEAM PREDICT
+    ========================================================= */
+
+    document
+      .getElementById("scoreBtn")
+      .addEventListener("click", async () => {
+
+        const box =
+          document.getElementById("scoreResult");
+
+        box.innerHTML = `
+
+      <div class="hint">
+        <span class="spin"></span>
+        Blue-Team detector scoring transaction...
+      </div>
+
+    `;
+
+
+        const amount =
+          parseFloat(
+            document.getElementById("p_amount").value
+          );
+
+        const baseline =
+          parseFloat(
+            document.getElementById("p_baseline").value
+          );
+
+
+        if (
+          !Number.isFinite(amount) ||
+          !Number.isFinite(baseline)
+        ) {
+
+          box.innerHTML = `
+        <div class="hint">
+          Please enter valid amount and baseline values.
+        </div>
+      `;
+
+          return;
+
+        }
+
+
+        const payload = {
+
+          transaction_id:
+            "TXN_DEMO_" + Date.now(),
+
+          customer_id:
+            "CUST_DEMO",
+
+          amount,
+
+          hour_of_day:
+            parseInt(
+              document.getElementById("p_hour").value
+            ),
+
+          merchant_category:
+            document.getElementById("p_merchant").value,
+
+          merchant_risk_score:
+            0.6,
+
+          payment_method:
+            "online_card_not_present",
+
+          device_type:
+            document.getElementById("p_device").value,
+
+          account_age_days:
+            120,
+
+          customer_baseline_spend:
+            baseline,
+
+          geo_distance_from_home_km:
+            parseFloat(
+              document.getElementById("p_geo").value
+            ),
+
+          txn_frequency_24h:
+            parseInt(
+              document.getElementById("p_freq").value
+            ),
+
+          failed_txn_count_24h:
+            parseInt(
+              document.getElementById("p_failed").value
+            ),
+
+          prev_txn_amount:
+            baseline * .9,
+
+          customer_risk_appetite:
+            .5
+
+        };
+
+
+        try {
+
+          const response =
+            await fetch(
+              API_BASE + "/predict",
+              {
+
+                method: "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json"
+                },
+
+                body:
+                  JSON.stringify(payload),
+
+                signal:
+                  AbortSignal.timeout(7000)
+
+              }
+            );
+
+
+          if (!response.ok) {
+
+            throw new Error(
+              "API error " +
+              response.status
+            );
+
+          }
+
+
+          const data =
+            await response.json();
+
+
+          const score =
+            Number(data.risk_score) || 0;
+
+          const color =
+            riskColor(score);
+
+
+          box.innerHTML = `
+
+        <div class="risk-row">
+
+          <div
+            class="risk-number"
+            style="color:${color}"
+          >
+            ${score.toFixed(1)}
+          </div>
+
+          <div class="risk-progress">
+
+            <div
+              class="risk-fill"
+              style="
+                width:${Math.min(score, 100)}%;
+                background:${color};
+              "
+            ></div>
+
+          </div>
+
+        </div>
+
+        <span class="badge ${data.prediction === "fraud"
+              ? "fraud"
+              : "legit"
+            }">
+
+          ${data.prediction || "unknown"
+            }
+
+        </span>
+
+        <span
+          class="badge"
+          style="
+            background:#f3f5f9;
+            color:#687087;
+            margin-left:5px;
+          "
+        >
+
+          ${data.risk_bucket || "risk"
+            }
+
+        </span>
+
+        <div class="narrative">
+
+          ${data.narrative ||
+            "Detector returned a score without an explanation."
+            }
+
+        </div>
+
+      `;
+
+
+          showToast(
+            "Blue-Team analysis completed"
+          );
+
+        }
+        catch (error) {
+
+          box.innerHTML = `
+
+        <div class="hint">
+
+          <b>Backend unavailable.</b><br><br>
+
+          Could not reach
+          <span class="mono">
+            ${API_BASE}
+          </span>.
+
+          <br><br>
+
+          Start your backend with:
+
+          <br>
+
+          <span class="mono">
+            uvicorn api.main:app --reload
+          </span>
+
+        </div>
+
+      `;
+
+          showToast(
+            "Backend connection failed"
+          );
+
+        }
+
+      });
+
+
+    /* =========================================================
+       RED TEAM ATTACK
+    ========================================================= */
+
+    document
+      .getElementById("attackBtn")
+      .addEventListener("click", async () => {
+
+        const box =
+          document.getElementById("attackResult");
+
+
+        box.innerHTML = `
+
+      <div class="hint">
+        <span class="spin"></span>
+        Red-Team attack being crafted...
+      </div>
+
+    `;
+
+
+        const intensity =
+          parseFloat(
+            document.getElementById("a_intensity").value
+          ) / 100;
+
+
+        const payload = {
+
+          transaction: {
+
+            transaction_id:
+              "TXN_BASE_" + Date.now(),
+
+            customer_id:
+              "CUST_BASE",
+
+            amount:
+              1200,
+
+            hour_of_day:
+              14,
+
+            merchant_category:
+              "grocery",
+
+            merchant_risk_score:
+              .05,
+
+            payment_method:
+              "chip",
+
+            device_type:
+              "pos_terminal",
+
+            account_age_days:
+              900,
+
+            customer_baseline_spend:
+              1100,
+
+            geo_distance_from_home_km:
+              3,
+
+            txn_frequency_24h:
+              1,
+
+            failed_txn_count_24h:
+              0,
+
+            prev_txn_amount:
+              1050,
+
+            customer_risk_appetite:
+              .1
+
+          },
+
+          attack_type:
+            document.getElementById("a_type").value,
+
+          intensity
+
+        };
+
+
+        try {
+
+          const response =
+            await fetch(
+              API_BASE + "/simulate-attack",
+              {
+
+                method: "POST",
+
+                headers: {
+                  "Content-Type":
+                    "application/json"
+                },
+
+                body:
+                  JSON.stringify(payload),
+
+                signal:
+                  AbortSignal.timeout(7000)
+
+              }
+            );
+
+
+          if (!response.ok) {
+
+            throw new Error(
+              "API error " +
+              response.status
+            );
+
+          }
+
+
+          const data =
+            await response.json();
+
+
+          const detector =
+            data.detector_result || {};
+
+
+          const score =
+            Number(detector.risk_score) || 0;
+
+          const color =
+            riskColor(score);
+
+
+          const success =
+            Boolean(data.attack_success);
+
+
+          const modified =
+            data.modified_transaction || {};
+
+
+          box.innerHTML = `
+
+        <div class="risk-row">
+
+          <div
+            class="risk-number"
+            style="color:${color}"
+          >
+            ${score.toFixed(1)}
+          </div>
+
+          <div class="risk-progress">
+
+            <div
+              class="risk-fill"
+              style="
+                width:${Math.min(score, 100)}%;
+                background:${color};
+              "
+            ></div>
+
+          </div>
+
+        </div>
+
+        <span class="badge ${success
+              ? "fraud"
+              : "legit"
+            }">
+
+          ${success
+              ? "ATTACK EVADED DETECTOR"
+              : "ATTACK CAUGHT"
+            }
+
+        </span>
+
+        <div class="narrative">
+
+          Baseline ₹1,200 grocery transaction
+
+          →
+
+          <b>
+            ${data.attack_type ||
+            payload.attack_type
+            }
+          </b>
+
+          · intensity
+          ${Number(
+              data.attack_intensity ??
+              intensity
+            ).toFixed(2)
+            }
+
+          <br>
+
+          Modified amount:
+          ₹${Math.round(
+              Number(
+                modified.amount ?? 1200
+              )
+            )}
+
+          · frequency:
+          ${modified.txn_frequency_24h ??
+            "—"
+            }
+
+          · geo:
+          ${Math.round(
+              Number(
+                modified.geo_distance_from_home_km ?? 0
+              )
+            )
+            }km
+
+          <br><br>
+
+          ${detector.narrative ||
+            "Attack simulation completed."
+            }
+
+        </div>
+
+      `;
+
+
+          showToast(
+            success
+              ? "Attack evaded detector"
+              : "Attack caught by detector"
+          );
+
+        }
+        catch (error) {
+
+          box.innerHTML = `
+
+        <div class="hint">
+
+          <b>Backend unavailable.</b><br><br>
+
+          Start:
+
+          <br>
+
+          <span class="mono">
+            uvicorn api.main:app --reload
+          </span>
+
+        </div>
+
+      `;
+
+          showToast(
+            "Attack API connection failed"
+          );
+
+        }
+
+      });
+
+
+    /* =========================================================
+       REPLAY
+    ========================================================= */
+
+    document
+      .getElementById("replayBtn")
+      .addEventListener(
+        "click",
+        playConsole
+      );
+
+
+    /* =========================================================
+       INITIALIZE
+    ========================================================= */
+
+    renderArsenal();
+
+    createActivityChart();
+
+    createMetricCharts();
+
+    playConsole();
+
+
+    /* =========================================================
+       ACTIVE NAV ON SCROLL
+    ========================================================= */
+
+    const sections = [
+      "overview",
+      "fraud",
+      "attack",
+      "arsenal",
+      "metrics",
+      "api"
+    ];
+
+    window.addEventListener(
+      "scroll",
+      () => {
+
+        let current = "";
+
+        sections.forEach(id => {
+
+          const section =
+            document.getElementById(id);
+
+          if (!section)
+            return;
+
+          const top =
+            section.getBoundingClientRect().top;
+
+          if (top < 150)
+            current = id;
+
+        });
+
+
+        if (current) {
+
+          document
+            .querySelectorAll(".nav-item")
+            .forEach(item => {
+
+              item.classList.remove(
+                "active"
+              );
+
+              if (
+                item.getAttribute("href") ===
+                "#" + current
+              ) {
+
+                item.classList.add(
+                  "active"
+                );
+
+              }
+
+            });
+
+        }
+
+      }
+    );
+
+  </script>
+
+</body>
+
+</html>

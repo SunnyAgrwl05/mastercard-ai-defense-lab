@@ -1,0 +1,62 @@
+{
+  "round1_before_overall": {
+    "total_attacks_generated": 1050,
+    "total_detected": 123,
+    "total_missed": 927,
+    "overall_detection_rate": 0.1171,
+    "overall_avg_risk_score": 13.11
+  },
+  "final_after_overall": {
+    "total_attacks_generated": 1050,
+    "total_detected": 651,
+    "total_missed": 399,
+    "overall_detection_rate": 0.62,
+    "overall_avg_risk_score": 63.76
+  },
+  "before_test_metrics": {
+    "model_used": "xgboost",
+    "threshold": 0.5,
+    "accuracy": 0.9769444357782423,
+    "precision": 0.4706766917293233,
+    "recall": 0.9470499243570348,
+    "f1_score": 0.6288297338021095,
+    "roc_auc": 0.9952093752554203,
+    "pr_auc": 0.9167015223237737,
+    "confusion_matrix": [
+      [
+        30688,
+        704
+      ],
+      [
+        35,
+        626
+      ]
+    ],
+    "n_samples": 32053,
+    "n_fraud": 661
+  },
+  "after_test_metrics": {
+    "model_used": "xgboost",
+    "threshold": 0.5,
+    "accuracy": 0.9562599444669766,
+    "precision": 0.31521197007481294,
+    "recall": 0.9561270801815431,
+    "f1_score": 0.4741185296324081,
+    "roc_auc": 0.9899181508032342,
+    "pr_auc": 0.9059537955241987,
+    "confusion_matrix": [
+      [
+        30019,
+        1373
+      ],
+      [
+        29,
+        632
+      ]
+    ],
+    "n_samples": 32053,
+    "n_fraud": 661
+  },
+  "n_adversarial_rows_added": 1353,
+  "n_rounds": 2
+}

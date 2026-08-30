@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Defense Lab — Payment Security Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0b0e14;
+    --panel: #11151f;
+    --panel-2: #161b28;
+    --line: #232a3a;
+    --text: #e7ebf3;
+    --muted: #8992a8;
+    --blue: #4f9dff;
+    --blue-dim: #1c3a63;
+    --red: #ff5470;
+    --red-dim: #4a1626;
+    --amber: #ffb84f;
+    --green: #35d18d;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Space Grotesk', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family: var(--sans);
+    background-image:
+      linear-gradient(180deg, rgba(79,157,255,0.04), transparent 300px),
+      radial-gradient(1200px 500px at 80% -10%, rgba(255,84,112,0.06), transparent);
+  }
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:22px 32px; border-bottom:1px solid var(--line);
+    position:sticky; top:0; background:rgba(11,14,20,0.85); backdrop-filter: blur(8px); z-index:10;
+  }
+  .brand{display:flex; align-items:center; gap:12px;}
+  .brand .mark{
+    width:34px; height:34px; border-radius:8px;
+    background: linear-gradient(135deg, var(--red), var(--blue));
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--mono); font-weight:800; font-size:14px; color:#0b0e14;
+  }
+  .brand h1{font-size:16px; margin:0; letter-spacing:0.2px;}
+  .brand .sub{font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:2px;}
+  .badge{
+    font-family:var(--mono); font-size:11px; color:var(--amber);
+    border:1px solid rgba(255,184,79,0.35); padding:5px 10px; border-radius:999px;
+    background:rgba(255,184,79,0.06);
+  }
+  main{max-width:1280px; margin:0 auto; padding:28px 32px 80px;}
+  .grid{display:grid; grid-template-columns: 1.1fr 1fr; gap:22px;}
+  @media (max-width: 980px){ .grid{grid-template-columns: 1fr;} }
+
+  .panel{
+    background: var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:22px; position:relative; overflow:hidden;
+  }
+  .panel::before{
+    content:""; position:absolute; top:0; left:0; right:0; height:2px;
+  }
+  .panel.blue::before{ background:linear-gradient(90deg, var(--blue), transparent); }
+  .panel.red::before{ background:linear-gradient(90deg, var(--red), transparent); }
+
+  .panel h2{
+    font-size:13px; text-transform:uppercase; letter-spacing:1.4px;
+    margin:0 0 4px; color:var(--muted); font-family:var(--mono);
+  }
+  .panel h2 .dot{display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:8px;}
+  .panel.blue h2 .dot{background:var(--blue);}
+  .panel.red h2 .dot{background:var(--red);}
+  .panel p.desc{color:var(--muted); font-size:13px; margin:0 0 18px;}
+
+  label{display:block; font-size:11px; color:var(--muted); font-family:var(--mono); margin:12px 0 4px;}
+  input, select{
+    width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    padding:9px 10px; border-radius:8px; font-family:var(--mono); font-size:13px;
+  }
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .row3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;}
+
+  button{
+    cursor:pointer; border:none; border-radius:9px; padding:11px 18px;
+    font-family:var(--mono); font-weight:600; font-size:12.5px; letter-spacing:0.4px;
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  button:active{transform:scale(0.98);}
+  .btn-blue{ background:var(--blue); color:#06121f; }
+  .btn-red{ background:var(--red); color:#210510; }
+  .btn-ghost{ background:transparent; color:var(--text); border:1px solid var(--line); }
+  .actions{display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;}
+
+  .result{
+    margin-top:20px; padding:16px; border-radius:10px; border:1px solid var(--line);
+    background:var(--panel-2); display:none;
+  }
+  .result.show{display:block;}
+  .score-row{display:flex; align-items:baseline; gap:14px; margin-bottom:10px;}
+  .score{font-family:var(--mono); font-weight:800; font-size:40px; line-height:1;}
+  .band{font-family:var(--mono); font-size:12px; padding:4px 10px; border-radius:999px; text-transform:uppercase; letter-spacing:0.6px;}
+  .band.low{color:var(--green); background:rgba(53,209,141,0.1); border:1px solid rgba(53,209,141,0.3);}
+  .band.medium{color:var(--amber); background:rgba(255,184,79,0.1); border:1px solid rgba(255,184,79,0.3);}
+  .band.high{color:#ff9457; background:rgba(255,148,87,0.1); border:1px solid rgba(255,148,87,0.3);}
+  .band.critical{color:var(--red); background:rgba(255,84,112,0.12); border:1px solid rgba(255,84,112,0.35);}
+  .narrative{font-size:13.5px; color:#c9cfdd; line-height:1.55; margin:8px 0 12px;}
+  .signals{display:flex; flex-wrap:wrap; gap:6px;}
+  .signal-chip{
+    font-family:var(--mono); font-size:11px; padding:5px 9px; border-radius:6px;
+    background:rgba(79,157,255,0.08); border:1px solid rgba(79,157,255,0.25); color:#bcd6ff;
+  }
+
+  .metrics-panel{grid-column: 1 / -1; margin-top:22px;}
+  .metric-cards{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:8px;}
+  @media (max-width: 860px){ .metric-cards{grid-template-columns:repeat(2,1fr);} }
+  .metric-card{
+    background:var(--panel-2); border:1px solid var(--line); border-radius:10px; padding:14px 16px;
+  }
+  .metric-card .label{font-family:var(--mono); font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:0.6px;}
+  .metric-card .value{font-family:var(--mono); font-weight:800; font-size:24px; margin-top:6px;}
+  .metric-card .value.up{color:var(--green);}
+  .metric-card .value.down{color:var(--red);}
+
+  table{width:100%; border-collapse:collapse; margin-top:16px; font-family:var(--mono); font-size:12.5px;}
+  th,td{text-align:left; padding:9px 10px; border-bottom:1px solid var(--line);}
+  th{color:var(--muted); font-weight:500; text-transform:uppercase; font-size:10.5px; letter-spacing:0.5px;}
+  .bar-cell{position:relative;}
+  .bar-track{height:6px; background:var(--panel); border-radius:4px; overflow:hidden; margin-top:4px;}
+  .bar-fill{height:100%; border-radius:4px;}
+  .bar-fill.before{background:var(--red);}
+  .bar-fill.after{background:var(--green);}
+
+  .figures{grid-column:1/-1; margin-top:22px;}
+  .fig-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:14px;}
+  @media (max-width: 980px){ .fig-grid{grid-template-columns:repeat(2,1fr);} }
+  @media (max-width: 620px){ .fig-grid{grid-template-columns:1fr;} }
+  .fig-grid img{width:100%; border-radius:10px; border:1px solid var(--line); display:block;}
+  .fig-cap{font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:6px;}
+
+  .footnote{font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:34px; line-height:1.7; border-top:1px solid var(--line); padding-top:16px;}
+  .loading{font-family:var(--mono); font-size:12px; color:var(--muted);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="mark">RB</div>
+    <div>
+      <h1>AI Defense Lab — Payment Security</h1>
+      <div class="sub">Red Team / Blue Team closed-loop console · Mastercard Innovation Challenge 2026</div>
+    </div>
+  </div>
+  <div class="badge">SYNTHETIC DATA · RESEARCH PROTOTYPE</div>
+</header>
+
+<main>
+  <div class="grid">
+    <!-- BLUE TEAM: score a transaction -->
+    <div class="panel blue">
+      <h2><span class="dot"></span>Blue Team — Score a Transaction</h2>
+      <p class="desc">Enter a transaction and the closed-loop-trained detector will return a fraud probability, a 0–100 risk score, and a plain-English explanation.</p>
+
+      <div class="row2">
+        <div><label>Amount</label><input id="amount" type="number" value="250"></div>
+        <div><label>Merchant category</label>
+          <select id="merchant_category">
+            <option>grocery</option><option selected>electronics</option><option>travel</option>
+            <option>restaurant</option><option>fuel</option><option>online_retail</option>
+            <option>utilities</option><option>entertainment</option><option>healthcare</option>
+            <option>jewelry</option><option>gambling</option><option>crypto_exchange</option>
+            <option>money_transfer</option><option>atm_withdrawal</option>
+          </select>
+        </div>
+      </div>
+      <div class="row2">
+        <div><label>Device type</label>
+          <select id="device_type">
+            <option selected>mobile_app</option><option>web_chrome</option><option>web_safari</option>
+            <option>pos_chip</option><option>pos_contactless</option><option>atm</option>
+          </select>
+        </div>
+        <div><label>Payment method</label>
+          <select id="payment_method">
+            <option selected>chip</option><option>contactless</option><option>online_card_not_present</option>
+            <option>magstripe</option><option>wallet</option>
+          </select>
+        </div>
+      </div>
+      <div class="row3">
+        <div><label>Geo distance (km)</label><input id="geo_distance_km" type="number" value="5"></div>
+        <div><label>Failed txns (recent)</label><input id="failed_txn_count_recent" type="number" value="0"></div>
+        <div><label>Txns in last 1h</label><input id="txn_count_last_1h" type="number" value="0"></div>
+      </div>
+
+      <div class="actions">
+        <button class="btn-blue" onclick="scoreTransaction()">Run Blue-Team Detector</button>
+      </div>
+
+      <div class="result" id="predict-result"></div>
+    </div>
+
+    <!-- RED TEAM: attack simulator -->
+    <div class="panel red">
+      <h2><span class="dot"></span>Red Team — Attack Simulator</h2>
+      <p class="desc">Take the transaction on the left and apply an adversarial attack family. The adaptive agent's current intensity / stealth parameters are used.</p>
+
+      <label>Attack family</label>
+      <select id="attack_type">
+        <option value="amount_manipulation">Amount Manipulation</option>
+        <option value="velocity_attack">Velocity Attack</option>
+        <option value="merchant_switching">Merchant Switching</option>
+        <option value="geo_evasion">Geographic Anomaly Evasion</option>
+        <option value="account_takeover">Account Takeover Pattern</option>
+        <option value="low_and_slow">Low-and-Slow Fraud</option>
+        <option value="behavioral_mimicry">Behavioral Mimicry</option>
+      </select>
+
+      <div class="actions">
+        <button class="btn-red" onclick="runAttack()">Craft &amp; Detect Attack</button>
+        <button class="btn-ghost" onclick="runBatch()">Run Full 7-Attack Batch</button>
+      </div>
+
+      <div class="result" id="attack-result"></div>
+      <div id="batch-result"></div>
+    </div>
+  </div>
+
+  <!-- METRICS DASHBOARD -->
+  <div class="panel metrics-panel">
+    <h2><span class="dot" style="background:var(--amber)"></span>Closed-Loop Results (real, pre-computed)</h2>
+    <p class="desc">These numbers come directly from the actual training run saved in <code>outputs/metrics/</code> — nothing here is hand-typed.</p>
+    <div class="metric-cards" id="metric-cards"><div class="loading">Loading metrics…</div></div>
+    <table id="attack-table" style="display:none;">
+      <thead><tr><th>Attack family</th><th>Detection — before</th><th>Detection — after</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- FIGURES -->
+  <div class="panel figures">
+    <h2><span class="dot" style="background:var(--green)"></span>Evaluation Charts</h2>
+    <p class="desc">Generated by <code>src/make_visualizations.py</code> from the actual run.</p>
+    <div class="fig-grid">
+      <div><img src="/figures/08_before_vs_after_closed_loop.png" onerror="this.parentElement.style.display='none'"><div class="fig-cap">Detection rate before vs after closed-loop training</div></div>
+      <div><img src="/figures/04_roc_curve.png" onerror="this.parentElement.style.display='none'"><div class="fig-cap">ROC curve — held-out test set</div></div>
+      <div><img src="/figures/06_feature_importance.png" onerror="this.parentElement.style.display='none'"><div class="fig-cap">Top model feature importances</div></div>
+    </div>
+  </div>
+
+  <div class="footnote">
+    ⚠ All transactions, accounts, and fraud events on this page are synthetically generated for research/demo purposes. This
+    prototype is not connected to, and does not use, any real Mastercard cardholder or transaction data. Risk thresholds
+    (Low / Medium / High / Critical) are configurable demonstration thresholds defined for this challenge submission, not
+    Mastercard production thresholds.
+  </div>
+</main>
+
+<script>
+const API = "";
+
+function bandClass(band){
+  return {"Low Risk":"low","Medium Risk":"medium","High Risk":"high","Critical Risk":"critical"}[band] || "medium";
+}
+
+function currentTxn(){
+  return {
+    amount: parseFloat(document.getElementById('amount').value),
+    merchant_category: document.getElementById('merchant_category').value,
+    merchant_risk_score: 0.1,
+    device_type: document.getElementById('device_type').value,
+    payment_method: document.getElementById('payment_method').value,
+    geo_distance_km: parseFloat(document.getElementById('geo_distance_km').value),
+    account_age_days: 400,
+    failed_txn_count_recent: parseInt(document.getElementById('failed_txn_count_recent').value),
+    seconds_since_prev_txn: 3600,
+    txn_count_last_1h: parseInt(document.getElementById('txn_count_last_1h').value),
+    txn_count_last_24h: 1,
+    amount_avg_last_5: 200,
+    amount_deviation_ratio: 1.0,
+    is_new_device_hint: 0,
+    hour_of_day: 14,
+    day_of_week: 2,
+    is_weekend: 0
+  };
+}
+
+function renderResult(elId, data){
+  const el = document.getElementById(elId);
+  el.classList.add('show');
+  const chips = (data.top_signals || []).map(s => `<span class="signal-chip">${s}</span>`).join('');
+  el.innerHTML = `
+    <div class="score-row">
+      <div class="score">${data.risk_score}</div>
+      <div class="band ${bandClass(data.risk_band)}">${data.risk_band}</div>
+      <div style="font-family:var(--mono); color:var(--muted); font-size:12px;">pred: ${data.prediction}</div>
+    </div>
+    <div class="narrative">${data.narrative}</div>
+    <div class="signals">${chips}</div>
+  `;
+}
+
+async function scoreTransaction(){
+  const res = await fetch(API + '/predict', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(currentTxn())});
+  const data = await res.json();
+  renderResult('predict-result', data);
+}
+
+async function runAttack(){
+  const body = { transaction: currentTxn(), attack_type: document.getElementById('attack_type').value };
+  const res = await fetch(API + '/simulate-attack', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+  const data = await res.json();
+  renderResult('attack-result', data);
+}
+
+async function runBatch(){
+  const el = document.getElementById('batch-result');
+  el.innerHTML = '<div class="loading">Running 7-attack batch…</div>';
+  const res = await fetch(API + '/red-team', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({n_per_type: 40})});
+  const data = await res.json();
+  let rows = data.summary.map(r => `<tr><td>${r.attack_type}</td><td>${(r.detection_rate*100).toFixed(1)}%</td><td>${r.avg_risk_score}</td></tr>`).join('');
+  el.innerHTML = `<table><thead><tr><th>Attack</th><th>Detection rate</th><th>Avg risk</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+async function loadMetrics(){
+  try{
+    const res = await fetch(API + '/metrics');
+    const data = await res.json();
+    const cls = data.closed_loop_summary;
+    const cards = document.getElementById('metric-cards');
+    if(cls){
+      const before = cls.round1_before_overall.overall_detection_rate*100;
+      const after = cls.final_after_overall.overall_detection_rate*100;
+      cards.innerHTML = `
+        <div class="metric-card"><div class="label">Attacks generated</div><div class="value">${cls.final_after_overall.total_attacks_generated}</div></div>
+        <div class="metric-card"><div class="label">Detection — before loop</div><div class="value down">${before.toFixed(1)}%</div></div>
+        <div class="metric-card"><div class="label">Detection — after loop</div><div class="value up">${after.toFixed(1)}%</div></div>
+        <div class="metric-card"><div class="label">Adversarial rows learned</div><div class="value">${cls.n_adversarial_rows_added}</div></div>
+      `;
+    }
+    if(data.round1_before && data.final_after){
+      const before = Object.fromEntries(data.round1_before.map(r=>[r.attack_type, r.detection_rate]));
+      const after = Object.fromEntries(data.final_after.map(r=>[r.attack_type, r.detection_rate]));
+      const tbody = document.querySelector('#attack-table tbody');
+      tbody.innerHTML = Object.keys(before).map(k => `
+        <tr>
+          <td>${k}</td>
+          <td class="bar-cell">${(before[k]*100).toFixed(1)}%<div class="bar-track"><div class="bar-fill before" style="width:${before[k]*100}%"></div></div></td>
+          <td class="bar-cell">${(after[k]*100).toFixed(1)}%<div class="bar-track"><div class="bar-fill after" style="width:${after[k]*100}%"></div></div></td>
+        </tr>`).join('');
+      document.getElementById('attack-table').style.display='table';
+    }
+  }catch(e){
+    document.getElementById('metric-cards').innerHTML = '<div class="loading">Metrics unavailable — run the pipeline first.</div>';
+  }
+}
+loadMetrics();
+</script>
+</body>
+</html>
